@@ -1,0 +1,94 @@
+{
+  "schedule": [
+    {
+      "day": "Luni",
+      "time": "08:00-10:00",
+      "subject": "Programare în limbaje de asamblare",
+      "location": "C309"
+    },
+    {
+      "day": "Luni",
+      "time": "10:00-12:00",
+      "subject": "Proiectarea cu microprocesoare",
+      "location": "C309"
+    },
+    {
+      "day": "Luni",
+      "time": "12:00-14:00",
+      "subject": "Programare orientată pe obiecte",
+      "location": "C408"
+    },
+    {
+      "day": "Marți",
+      "time": "08:00-10:00",
+      "subject": "Baze de date",
+      "location": "C309"
+    },
+    {
+      "day": "Marți",
+      "time": "10:00-12:00",
+      "subject": "Algoritmi și structuri de date",
+      "location": "C408"
+    },
+    {
+      "day": "Marți",
+      "time": "14:00-16:00",
+      "subject": "Matematică aplicată",
+      "location": "A203"
+    },
+    {
+      "day": "Miercuri",
+      "time": "08:00-10:00",
+      "subject": "Proiectare interfețe utilizator",
+      "location": "C309"
+    },
+    {
+      "day": "Miercuri",
+      "time": "10:00-12:00",
+      "subject": "Rețele de calculatoare",
+      "location": "C408"
+    },
+    {
+      "day": "Miercuri",
+      "time": "12:00-14:00",
+      "subject": "Sisteme de operare",
+      "location": "C309"
+    },
+    {
+      "day": "Joi",
+      "time": "08:00-10:00",
+      "subject": "Ingineria programării",
+      "location": "C408"
+    },
+    {
+      "day": "Joi",
+      "time": "10:00-12:00",
+      "subject": "Securitate informatică",
+      "location": "C309"
+    },
+    {
+      "day": "Joi",
+      "time": "14:00-16:00",
+      "subject": "Dezvoltare web",
+      "location": "C408"
+    },
+    {
+      "day": "Vineri",
+      "time": "08:00-10:00",
+      "subject": "Proiect PIU",
+      "location": "C309"
+    },
+    {
+      "day": "Vineri",
+      "time": "10:00-12:00",
+      "subject": "Laboratoare programare",
+      "location": "C408"
+    },
+    {
+      "day": "Vineri",
+      "time": "12:00-14:00",
+      "subject": "Consultații",
+      "location": "Cabinet profesori"
+    }
+  ]
+}

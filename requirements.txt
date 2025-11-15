@@ -1,0 +1,16 @@
+# WeatherScheduler - Dependențe necesare
+# Python 3.13+ recomandat
+
+# Framework UI principal
+PyQt6==6.7.1
+
+# Grafice interactive
+pyqtgraph==0.13.7
+
+# Dependențe pentru pyqtgraph
+numpy==2.0.2
+
+# Note: 
+# - Nu avem nevoie de reportlab pentru că folosim Qt Print Framework pentru PDF
+# - Nu avem nevoie de requests pentru că folosim QNetworkAccessManager din PyQt6
+# - API-ul Open-Meteo este gratuit și nu necesită API key
