@@ -1,8 +1,3 @@
-"""
-UI & Interfață principală WeatherScheduler
-Responsabil: Danalache Emanuel
-"""
-
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                              QPushButton, QTableWidget, QTableWidgetItem, 
                              QLabel, QFileDialog, QMessageBox, QHeaderView)

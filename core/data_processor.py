@@ -1,8 +1,3 @@
-"""
-Procesare și combinare date orar + meteo
-Responsabil: Danalache Sebastian
-"""
-
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 

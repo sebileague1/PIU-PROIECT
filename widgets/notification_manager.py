@@ -1,8 +1,3 @@
-"""
-Sistem de notificări pentru condiții meteo nefavorabile
-Responsabil: Moscalu Sebastian
-"""
-
 from PyQt6.QtWidgets import QSystemTrayIcon, QMenu, QMessageBox, QWidget
 from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor
 from PyQt6.QtCore import QTimer, pyqtSignal, QObject
