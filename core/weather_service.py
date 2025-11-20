@@ -3,7 +3,7 @@ Serviciu pentru obținerea datelor meteo de la API
 Responsabil: Danalache Sebastian
 """
 
-from PyQt6.QtCore import QObject, pyqtSignal, QUrl
+from PyQt6.QtCore import QObject, pyqtSignal, QUrl, QTimer # Am adăugat QTimer
 from PyQt6.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 import json
 from datetime import datetime, timedelta
@@ -19,15 +19,16 @@ class WeatherService(QObject):
     weather_data_ready = pyqtSignal(dict)
     weather_error = pyqtSignal(str)
     
-    def __init__(self, latitude: float = 44.4268, longitude: float = 26.1025):
+    def __init__(self):
         """
         Inițializează serviciul meteo
-        Default: București (44.4268°N, 26.1025°E)
         """
         super().__init__()
         
-        self.latitude = latitude
-        self.longitude = longitude
+        self.latitude = 44.4268  # Default
+        self.longitude = 26.1025 # Default
+        self.city_name = "București" # Default
+        
         self.network_manager = QNetworkAccessManager()
         self.network_manager.finished.connect(self.handle_response)
         
@@ -39,116 +40,135 @@ class WeatherService(QObject):
         # Preferințe utilizator
         self.temperature_unit = "celsius"  # sau "fahrenheit"
         
-    def set_location(self, latitude: float, longitude: float):
+        self.pending_days_request = 0 # Stochează numărul de zile cerute
+        
+    def set_location(self, city_name: str):
         """Setează locația pentru care se cer datele meteo"""
-        self.latitude = latitude
-        self.longitude = longitude
+        self.city_name = city_name
         self.cached_weather = None  # Invalidează cache-ul la schimbarea locației
         
     def set_temperature_unit(self, unit: str):
         """Setează unitatea de măsură pentru temperatură (celsius/fahrenheit)"""
         if unit.lower() in ["celsius", "fahrenheit"]:
             self.temperature_unit = unit.lower()
+            self.cached_weather = None
             
     def fetch_weather_data(self, days: int = 7):
         """
-        Solicită date meteo pentru următoarele zile
-        
-        Args:
-            days: Numărul de zile pentru care se cer datele (max 16 pentru API gratuit)
+        Pornește procesul de preluare a vremii:
+        1. Obține coordonatele pentru self.city_name
+        2. Apelează _fetch_weather_for_coords cu coordonatele găsite
         """
-        # Verifică cache-ul
+        self.pending_days_request = days
+        
+        # 1. Construiește URL-ul pentru geocoding
+        geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={self.city_name}&count=1&language=ro&format=json"
+        
+        request = QNetworkRequest(QUrl(geo_url))
+        request.setHeader(QNetworkRequest.KnownHeaders.UserAgentHeader, "WeatherScheduler/1.0")
+        
+        # AM ȘTERS: request.setProperty("request_type", "geocoding")
+        
+        print(f"Caut coordonatele pentru {self.city_name}...")
+        self.network_manager.get(request)
+
+    def _fetch_weather_for_coords(self, lat, lon, days):
+        """Funcție ajutătoare care preia vremea DUPĂ ce avem coordonatele."""
         if self.is_cache_valid():
             print("Folosim datele din cache")
             self.weather_data_ready.emit(self.cached_weather)
             return
             
-        # Construiește URL-ul pentru API Open-Meteo
-        # API-ul este gratuit și nu necesită API key
         base_url = "https://api.open-meteo.com/v1/forecast"
         
-        # Parametrii cererii
         params = {
-            "latitude": self.latitude,
-            "longitude": self.longitude,
+            "latitude": lat,
+            "longitude": lon,
             "hourly": "temperature_2m,precipitation_probability,precipitation,weathercode,windspeed_10m",
             "daily": "weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum",
             "timezone": "Europe/Bucharest",
             "forecast_days": min(days, 16)
         }
         
-        # Adaugă unitatea de temperatură
         if self.temperature_unit == "fahrenheit":
             params["temperature_unit"] = "fahrenheit"
             
-        # Construiește URL-ul complet
         url_parts = [f"{base_url}?"]
         for key, value in params.items():
             url_parts.append(f"{key}={value}&")
         url_string = "".join(url_parts).rstrip("&")
         
-        # Creează cererea
         request = QNetworkRequest(QUrl(url_string))
         request.setHeader(QNetworkRequest.KnownHeaders.UserAgentHeader, 
                          "WeatherScheduler/1.0")
+                         
+        # AM ȘTERS: request.setProperty("request_type", "weather")
         
-        # Trimite cererea asincronă
-        print(f"Solicit date meteo pentru {days} zile...")
+        print(f"Solicit date meteo pentru {days} zile la {lat}, {lon}...")
         self.network_manager.get(request)
         
     def handle_response(self, reply: QNetworkReply):
-        """Procesează răspunsul de la API"""
-        if reply.error() == QNetworkReply.NetworkError.NoError:
-            # Citește datele JSON
-            data = reply.readAll()
-            try:
-                weather_json = json.loads(bytes(data))
-                
-                # Procesează datele
-                processed_data = self.process_weather_data(weather_json)
-                
-                # Salvează în cache
-                self.cached_weather = processed_data
-                self.cache_timestamp = datetime.now()
-                
-                # Salvează în fișier pentru persistență
-                self.save_weather_to_file(processed_data)
-                
-                # Emite semnalul cu datele procesate
-                self.weather_data_ready.emit(processed_data)
-                
-            except json.JSONDecodeError as e:
-                error_msg = f"Eroare la parsarea răspunsului JSON: {str(e)}"
+        """Procesează răspunsul de la API (fie geocoding, fie weather)"""
+        
+        # === MODIFICARE AICI: Verificăm URL-ul ===
+        url_string = reply.url().toString()
+
+        if "geocoding-api.open-meteo.com" in url_string:
+            # Acesta este un răspuns de la Geocoding
+            if reply.error() == QNetworkReply.NetworkError.NoError:
+                data = reply.readAll()
+                try:
+                    geo_json = json.loads(bytes(data))
+                    if not geo_json.get("results"):
+                        self.weather_error.emit(f"Orașul '{self.city_name}' nu a fost găsit.")
+                        return
+                    
+                    result = geo_json["results"][0]
+                    self.latitude = result["latitude"]
+                    self.longitude = result["longitude"]
+                    print(f"Am găsit coordonatele: {self.latitude}, {self.longitude}")
+                    
+                    # Folosim QTimer.singleShot(0, ...) pentru a porni
+                    # următoarea cerere DUPĂ ce funcția curentă se termină.
+                    # Asta previne blocarea.
+                    QTimer.singleShot(0, lambda: self._fetch_weather_for_coords(
+                        self.latitude, 
+                        self.longitude, 
+                        self.pending_days_request
+                    ))
+                    
+                except json.JSONDecodeError as e:
+                    self.weather_error.emit(f"Eroare la parsarea geocoding: {str(e)}")
+            else:
+                self.weather_error.emit(f"Eroare la geocoding: {reply.errorString()}")
+
+        elif "api.open-meteo.com/v1/forecast" in url_string:
+            # Acesta este un răspuns de la Weather API
+            if reply.error() == QNetworkReply.NetworkError.NoError:
+                data = reply.readAll()
+                try:
+                    weather_json = json.loads(bytes(data))
+                    processed_data = self.process_weather_data(weather_json)
+                    self.cached_weather = processed_data
+                    self.cache_timestamp = datetime.now()
+                    self.save_weather_to_file(processed_data)
+                    self.weather_data_ready.emit(processed_data)
+                    
+                except json.JSONDecodeError as e:
+                    error_msg = f"Eroare la parsarea răspunsului JSON: {str(e)}"
+                    print(error_msg)
+                    self.weather_error.emit(error_msg)
+            else:
+                error_msg = f"Eroare la solicitarea datelor meteo: {reply.errorString()}"
                 print(error_msg)
                 self.weather_error.emit(error_msg)
-        else:
-            error_msg = f"Eroare la solicitarea datelor meteo: {reply.errorString()}"
-            print(error_msg)
-            self.weather_error.emit(error_msg)
-            
+        
+        # Ștergem obiectul reply la final
         reply.deleteLater()
         
     def process_weather_data(self, raw_data: Dict) -> Dict:
         """
         Procesează datele brute de la API într-un format util pentru aplicație
-        
-        Returns:
-            Dict cu structura:
-            {
-                "hourly": [
-                    {
-                        "datetime": "2025-01-15T08:00",
-                        "temperature": 18,
-                        "precipitation_probability": 20,
-                        "precipitation": 0.0,
-                        "weather_description": "Însorit",
-                        "weather_code": 0,
-                        "wind_speed": 10
-                    },
-                    ...
-                ],
-                "daily": [...]
-            }
         """
         processed = {
             "hourly": [],
@@ -208,7 +228,6 @@ class WeatherService(QObject):
     def get_weather_description(self, code: int) -> str:
         """
         Convertește codul WMO în descriere text
-        Codurile WMO: https://open-meteo.com/en/docs
         """
         weather_codes = {
             0: "Senin",
@@ -242,27 +261,21 @@ class WeatherService(QObject):
     def check_rain_risk_for_tomorrow(self, schedule_entries: List[Dict]) -> List[Dict]:
         """
         Verifică dacă există risc de ploaie pentru intervalele din ziua următoare
-        
-        Returns:
-            Lista cu intrări care au risc de ploaie
         """
         risky_entries = []
         
         if not self.cached_weather:
             return risky_entries
             
-        # Obține data de mâine
         tomorrow = (datetime.now() + timedelta(days=1)).date()
         
         for entry in schedule_entries:
-            # Extrage ora de începere din intervalul orar
             time_range = entry.get("time", "")
             if "-" not in time_range:
                 continue
                 
             start_time_str = time_range.split("-")[0].strip()
             
-            # Construiește datetime-ul complet
             try:
                 entry_datetime = datetime.strptime(
                     f"{tomorrow} {start_time_str}", 
@@ -271,15 +284,11 @@ class WeatherService(QObject):
             except ValueError:
                 continue
                 
-            # Caută datele meteo pentru acest datetime
             for hourly in self.cached_weather["hourly"]:
                 hourly_dt = datetime.fromisoformat(hourly["datetime"])
-                
-                # Verifică dacă este în același interval orar (±30 min)
                 time_diff = abs((hourly_dt - entry_datetime).total_seconds())
                 
                 if time_diff <= 1800:  # 30 minute
-                    # Verifică dacă există risc de ploaie (>30% probabilitate sau ploaie efectivă)
                     precip_prob = hourly.get("precipitation_probability", 0)
                     precip_amount = hourly.get("precipitation", 0)
                     
@@ -328,7 +337,6 @@ class WeatherService(QObject):
             with open("resources/weather_cache.json", "r", encoding="utf-8") as f:
                 cached = json.load(f)
                 
-            # Verifică dacă cache-ul din fișier este valid (< 30 min)
             timestamp = datetime.fromisoformat(cached["timestamp"])
             elapsed = (datetime.now() - timestamp).total_seconds()
             

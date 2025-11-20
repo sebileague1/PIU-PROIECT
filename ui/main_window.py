@@ -23,7 +23,6 @@ from ui.settings_dialog import SettingsDialog
 class MainWindow(QMainWindow):
     """Fereastra principală a aplicației WeatherScheduler"""
     
-    # Semnale pentru comunicare între componente
     schedule_loaded = pyqtSignal(dict)
     weather_update_requested = pyqtSignal()
     
@@ -36,28 +35,20 @@ class MainWindow(QMainWindow):
         
         # === INIȚIALIZARE COMPONENTE ===
         
-        # Manager pentru orar (Sebastian D.)
         self.schedule_manager = ScheduleManager()
         
-        # Serviciu meteo (Sebastian D.)
         self.weather_service = WeatherService()
         self.weather_service.weather_data_ready.connect(self.on_weather_data_received)
         self.weather_service.weather_error.connect(self.on_weather_error)
         
-        # Procesor date (Sebastian D.)
         self.data_processor = DataProcessor()
-        
-        # Manager notificări (Sebastian M.)
         self.notification_manager = NotificationManager(self)
         self.notification_manager.start_automatic_checks(60)
-        
-        # Manager export (Sebastian M.)
         self.export_manager = ExportManager(self)
         
         self.init_ui()
         self.apply_theme()
         
-        # Încearcă să încarce datele meteo din cache la pornire
         cached_weather = self.weather_service.load_weather_from_file()
         if cached_weather:
             self.weather_data = cached_weather
@@ -68,25 +59,21 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("WeatherScheduler - Planificator Meteo Orar")
         self.setGeometry(100, 100, 1400, 900)
         
-        # Widget central
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         
-        # Layout principal vertical
         main_layout = QVBoxLayout()
         central_widget.setLayout(main_layout)
         
         # ==== SECȚIUNEA HEADER ====
         header_layout = QHBoxLayout()
         
-        # Label titlu
         title_label = QLabel("📅 WeatherScheduler")
         title_label.setStyleSheet("font-size: 24px; font-weight: bold;")
         header_layout.addWidget(title_label)
         
         header_layout.addStretch()
         
-        # Buton comutare dark/light mode
         self.theme_button = QPushButton("🌙 Mod Întunecat")
         self.theme_button.clicked.connect(self.toggle_theme)
         self.theme_button.setFixedSize(150, 35)
@@ -97,13 +84,11 @@ class MainWindow(QMainWindow):
         # ==== SECȚIUNEA CONTROALE ====
         controls_layout = QHBoxLayout()
         
-        # Buton încărcare orar
         self.load_schedule_button = QPushButton("📂 Încarcă Orar")
         self.load_schedule_button.clicked.connect(self.load_schedule)
         self.load_schedule_button.setFixedSize(150, 40)
         controls_layout.addWidget(self.load_schedule_button)
         
-        # Buton actualizare meteo
         self.refresh_weather_button = QPushButton("🔄 Actualizează Meteo")
         self.refresh_weather_button.clicked.connect(self.refresh_weather)
         self.refresh_weather_button.setEnabled(False)
@@ -112,19 +97,16 @@ class MainWindow(QMainWindow):
         
         controls_layout.addStretch()
         
-        # Buton setări
         self.settings_button = QPushButton("⚙️ Setări")
         self.settings_button.clicked.connect(self.open_settings)
         self.settings_button.setFixedSize(120, 40)
         controls_layout.addWidget(self.settings_button)
         
-        # Buton ajutor
         self.help_button = QPushButton("❓ Ajutor")
         self.help_button.clicked.connect(self.open_help)
         self.help_button.setFixedSize(120, 40)
         controls_layout.addWidget(self.help_button)
         
-        # Buton export
         self.export_button = QPushButton("💾 Export")
         self.export_button.clicked.connect(self.export_data)
         self.export_button.setEnabled(False)
@@ -150,14 +132,12 @@ class MainWindow(QMainWindow):
         """Creează tabelul pentru afișarea orarului și datelor meteo"""
         self.table = QTableWidget()
         
-        # Definim coloanele tabelului
         columns = ["Zi", "Interval Orar", "Materie/Activitate", 
                    "🌡️ Temperatură", "☁️ Condiții", "💧 Precipitații", "💨 Vânt"]
         
         self.table.setColumnCount(len(columns))
         self.table.setHorizontalHeaderLabels(columns)
         
-        # Configurare aspect tabel
         self.table.setAlternatingRowColors(True)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
@@ -176,7 +156,6 @@ class MainWindow(QMainWindow):
             return
             
         try:
-            # Folosim ScheduleManager pentru încărcare
             if file_path.endswith('.json'):
                 result = self.schedule_manager.load_from_json(file_path)
             else:
@@ -192,14 +171,11 @@ class MainWindow(QMainWindow):
             num_entries = len(result["schedule"])
             self.status_label.setText(f"✅ Orar încărcat cu succes: {num_entries} intrări din {Path(file_path).name}")
             
-            # Activează butoanele
             self.refresh_weather_button.setEnabled(True)
             self.export_button.setEnabled(True)
             
-            # Notificare de succes
             self.notification_manager.show_success_notification(f"Orar încărcat: {num_entries} intrări")
             
-            # Dacă avem deja date meteo în cache, actualizează automat
             if self.weather_data:
                 self.update_schedule_with_cached_weather()
             
@@ -215,14 +191,9 @@ class MainWindow(QMainWindow):
         self.table.setRowCount(len(schedule_entries))
         
         for row, entry in enumerate(schedule_entries):
-            # Ziua
             self.table.setItem(row, 0, QTableWidgetItem(entry.get("day", "")))
-            # Interval orar
             self.table.setItem(row, 1, QTableWidgetItem(entry.get("time", "")))
-            # Materie/Activitate
             self.table.setItem(row, 2, QTableWidgetItem(entry.get("subject", "")))
-            
-            # Coloanele meteo vor fi populate după actualizare
             self.table.setItem(row, 3, QTableWidgetItem("-"))
             self.table.setItem(row, 4, QTableWidgetItem("-"))
             self.table.setItem(row, 5, QTableWidgetItem("-"))
@@ -261,7 +232,6 @@ class MainWindow(QMainWindow):
         self.status_label.setText("🔄 Se actualizează datele meteo de la API Open-Meteo...")
         self.refresh_weather_button.setEnabled(False)
         
-        # Trimite cererea către serviciul meteo
         self.weather_service.fetch_weather_data(days=7)
         
     def on_weather_data_received(self, weather_data: dict):
@@ -273,20 +243,15 @@ class MainWindow(QMainWindow):
             self.refresh_weather_button.setEnabled(True)
             return
         
-        # Combină datele din orar cu datele meteo
         schedule_entries = self.schedule_data.get("schedule", [])
         self.enriched_entries = self.data_processor.merge_schedule_with_weather(
             schedule_entries,
             weather_data
         )
         
-        # Actualizează tabelul
         self.update_table_with_weather_data(self.enriched_entries)
-        
-        # Actualizează graficele
         self.weather_chart.update_charts(weather_data, self.enriched_entries)
         
-        # Verifică riscul de ploaie pentru mâine
         tomorrow_entries = self.data_processor.get_entries_for_tomorrow(self.enriched_entries)
         risky_entries = []
         
@@ -298,11 +263,9 @@ class MainWindow(QMainWindow):
                     entry["weather_data"] = weather_info
                     risky_entries.append(entry)
         
-        # Trimite notificări pentru ploaie
         if risky_entries:
             self.notification_manager.check_rain_risk_and_notify(risky_entries)
         
-        # Calculează și afișează statistici
         stats = self.data_processor.calculate_statistics(self.enriched_entries)
         avg_temp = stats['avg_temperature']
         temp_str = f"{avg_temp:.1f}°C" if avg_temp is not None else "N/A"
@@ -334,12 +297,10 @@ class MainWindow(QMainWindow):
         self.table.setRowCount(len(enriched_entries))
         
         for row, entry in enumerate(enriched_entries):
-            # Date orar
             self.table.setItem(row, 0, QTableWidgetItem(entry.get("day", "")))
             self.table.setItem(row, 1, QTableWidgetItem(entry.get("time", "")))
             self.table.setItem(row, 2, QTableWidgetItem(entry.get("subject", "")))
             
-            # Date meteo formatate
             weather = entry.get("weather")
             if weather:
                 formatted = self.data_processor.format_weather_for_table(weather)
@@ -348,22 +309,20 @@ class MainWindow(QMainWindow):
                 self.table.setItem(row, 5, QTableWidgetItem(formatted["precipitation"]))
                 self.table.setItem(row, 6, QTableWidgetItem(formatted["wind"]))
                 
-                # Colorează rândul dacă există risc de ploaie
                 is_rainy, severity = self.data_processor.detect_rain_conditions(weather)
                 if is_rainy:
                     if severity == "heavy":
-                        color = QColor(255, 200, 200)  # Roșu deschis
+                        color = QColor(255, 200, 200)
                     elif severity == "moderate":
-                        color = QColor(255, 240, 200)  # Galben deschis
+                        color = QColor(255, 240, 200)
                     else:
-                        color = QColor(230, 240, 255)  # Albastru deschis
+                        color = QColor(230, 240, 255)
                         
                     for col in range(self.table.columnCount()):
                         item = self.table.item(row, col)
                         if item:
                             item.setBackground(color)
             else:
-                # Nu avem date meteo pentru această intrare
                 for col in range(3, 7):
                     self.table.setItem(row, col, QTableWidgetItem("-"))
             
@@ -381,7 +340,7 @@ class MainWindow(QMainWindow):
     def apply_theme(self):
         """Aplică tema vizuală curentă"""
         if self.current_theme == "dark":
-            # Tema întunecată
+            # Tema întunecată (MODIFICATĂ CU SCROLLBAR)
             self.setStyleSheet("""
                 QMainWindow {
                     background-color: #2b2b2b;
@@ -421,12 +380,32 @@ class MainWindow(QMainWindow):
                     padding: 5px;
                     border: 1px solid #555555;
                 }
+                
+                /* === STIL PENTRU SCROLLBAR (DARK) === */
+                QScrollBar:vertical {
+                    border: 1px solid #555555;
+                    background: #3d3d3d;
+                    width: 15px; /* Lățimea barei */
+                    margin: 20px 0 20px 0;
+                }
+                QScrollBar::handle:vertical {
+                    background: #555555; /* Culoarea cursorului */
+                    min-height: 20px;
+                    border-radius: 7px;
+                }
+                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                    height: 20px;
+                    subcontrol-origin: margin;
+                }
+                QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                    background: none;
+                }
             """)
         else:
-            # Tema luminoasă
+            # Tema luminoasă (MODIFICATĂ CU SCROLLBAR)
             self.setStyleSheet("""
                 QMainWindow {
-                    background-color: #f5f5f5;
+                    background-color: #f5f5ff;
                 }
                 QWidget {
                     background-color: #f5f5f5;
@@ -463,6 +442,26 @@ class MainWindow(QMainWindow):
                     padding: 5px;
                     border: 1px solid #cccccc;
                 }
+                
+                /* === STIL PENTRU SCROLLBAR (LIGHT) === */
+                QScrollBar:vertical {
+                    border: 1px solid #cccccc;
+                    background: #f0f0f0;
+                    width: 15px; /* Lățimea barei */
+                    margin: 20px 0 20px 0;
+                }
+                QScrollBar::handle:vertical {
+                    background: #c0c0c0; /* Culoarea cursorului */
+                    min-height: 20px;
+                    border-radius: 7px;
+                }
+                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                    height: 20px;
+                    subcontrol-origin: margin;
+                }
+                QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                    background: none;
+                }
             """)
             
     def open_settings(self):
@@ -473,16 +472,11 @@ class MainWindow(QMainWindow):
 
     def apply_new_settings(self, settings: dict):
         """Aplică noile setări după salvare"""
-        # Actualizează unitatea de temperatură
         self.weather_service.set_temperature_unit(settings.get("temperature_unit", "celsius"))
         
-        # Actualizează locația
-        self.weather_service.set_location(
-            settings.get("latitude", 44.4268),
-            settings.get("longitude", 26.1025)
-        )
+        # (MODIFICAT AICI)
+        self.weather_service.set_location(settings.get("location_name", "București"))
         
-        # Actualizează setările de notificări
         self.notification_manager.enable_notifications(settings.get("notifications_enabled", True))
         self.notification_manager.set_check_interval(settings.get("update_interval_minutes", 60))
         
@@ -491,7 +485,6 @@ class MainWindow(QMainWindow):
         else:
             self.notification_manager.stop_automatic_checks()
         
-        # Invalidează cache-ul pentru a forța actualizare cu noile setări
         self.weather_service.cached_weather = None
         
         self.status_label.setText("✅ Setări aplicate cu succes!")
@@ -530,7 +523,7 @@ class MainWindow(QMainWindow):
         <h3>5️⃣ Setări</h3>
         <p>Personalizează aplicația din <b>"⚙️ Setări"</b>:</p>
         <p>• Schimbă între Celsius și Fahrenheit</p>
-        <p>• Configurează locația (latitudine/longitudine)</p>
+        <p>• Configurează locația (după nume)</p>
         <p>• Ajustează frecvența actualizărilor</p>
         <p>• Activează/dezactivează notificările</p>
         
@@ -542,7 +535,7 @@ class MainWindow(QMainWindow):
         
         <hr>
         <p><b>💡 Sursa datelor:</b> API Open-Meteo (gratuit, fără înregistrare necesară)</p>
-        <p><b>📍 Locație implicită:</b> București (44.4268°N, 26.1025°E)</p>
+        <p><b>📍 Locație implicită:</b> București</p>
         """
         
         msg = QMessageBox(self)
@@ -558,7 +551,6 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "Atenție", "Nu există date de exportat. Încarcă mai întâi un orar.")
             return
         
-        # Dialog pentru selectarea formatului
         formats = ["PDF", "CSV"]
         format_choice, ok = QInputDialog.getItem(
             self,
@@ -572,7 +564,6 @@ class MainWindow(QMainWindow):
         if not ok:
             return
         
-        # Pregătim datele îmbogățite
         if self.enriched_entries:
             export_entries = self.enriched_entries
             statistics = self.data_processor.calculate_statistics(self.enriched_entries)
@@ -580,7 +571,6 @@ class MainWindow(QMainWindow):
             export_entries = self.schedule_data.get("schedule", [])
             statistics = None
         
-        # Exportăm în formatul ales
         if format_choice == "PDF":
             success = self.export_manager.export_to_pdf(
                 export_entries,
@@ -595,10 +585,8 @@ class MainWindow(QMainWindow):
             
     def closeEvent(self, event):
         """Handler apelat când aplicația se închide"""
-        # Oprește verificările automate
         self.notification_manager.cleanup()
         
-        # Salvează datele meteo în cache
         if self.weather_data:
             self.weather_service.save_weather_to_file(self.weather_data)
         

@@ -4,7 +4,7 @@ Responsabil: Moscalu Sebastian
 """
 
 from PyQt6.QtPrintSupport import QPrinter, QPrintDialog
-from PyQt6.QtGui import QPainter, QFont, QColor, QPen
+from PyQt6.QtGui import QPainter, QFont, QColor, QPen, QPageSize # <-- MODIFICAT AICI
 from PyQt6.QtCore import QRect, Qt, QDate
 from PyQt6.QtWidgets import QFileDialog, QMessageBox, QWidget
 import csv
@@ -28,16 +28,7 @@ class ExportManager:
     ) -> bool:
         """
         Exportă datele în format PDF folosind Qt Print Framework
-        
-        Args:
-            schedule_data: Lista cu intrări din orar și date meteo
-            weather_data: Datele meteo complete (opțional, pentru statistici suplimentare)
-            statistics: Statistici calculate (opțional)
-            
-        Returns:
-            True dacă exportul a reușit, False altfel
         """
-        # Dialogul pentru selectarea fișierului de salvare
         file_path, _ = QFileDialog.getSaveFileName(
             self.parent,
             "Salvează raportul PDF",
@@ -49,25 +40,26 @@ class ExportManager:
             return False
             
         try:
-            # Creăm printer-ul pentru PDF
             printer = QPrinter(QPrinter.PrinterMode.HighResolution)
             printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
             printer.setOutputFileName(file_path)
-            printer.setPageSize(QPrinter.PageSize.A4)
+            
+            # === LINIA MODIFICATĂ ===
+            # Folosim QPageSize(QPageSize.PageSizeId.A4) în loc de QPrinter.PageSize.A4
+            printer.setPageSize(QPageSize(QPageSize.PageSizeId.A4))
+            # =========================
+            
             printer.setPageMargins(15, 15, 15, 15, QPrinter.Unit.Millimeter)
             
-            # Creăm painter-ul pentru desenare
             painter = QPainter()
             
             if not painter.begin(printer):
                 raise Exception("Nu s-a putut inițializa painter-ul pentru PDF")
                 
-            # Desenăm conținutul PDF-ului
             self._draw_pdf_content(painter, printer, schedule_data, weather_data, statistics)
             
             painter.end()
             
-            # Mesaj de succes
             if self.parent:
                 QMessageBox.information(
                     self.parent,
@@ -102,7 +94,7 @@ class ExportManager:
         page_width = int(page_rect.width())
         page_height = int(page_rect.height())
         
-        y_position = 50  # Poziția verticală curentă
+        y_position = 50 
         
         # === HEADER ===
         font_title = QFont("Arial", 24, QFont.Weight.Bold)
@@ -113,7 +105,6 @@ class ExportManager:
         painter.drawText(50, y_position, title_text)
         y_position += 40
         
-        # Subtitle
         font_subtitle = QFont("Arial", 14)
         painter.setFont(font_subtitle)
         painter.setPen(QColor(100, 100, 100))
@@ -122,7 +113,6 @@ class ExportManager:
         painter.drawText(50, y_position, subtitle_text)
         y_position += 30
         
-        # Linie separator
         painter.setPen(QPen(QColor(200, 200, 200), 2))
         painter.drawLine(50, y_position, page_width - 50, y_position)
         y_position += 40
@@ -136,7 +126,6 @@ class ExportManager:
         font_normal = QFont("Arial", 10)
         painter.setFont(font_normal)
         
-        # Header tabel
         painter.setPen(QColor(255, 255, 255))
         painter.setBrush(QColor(0, 51, 102))
         painter.drawRect(50, y_position, page_width - 100, 30)
@@ -150,19 +139,15 @@ class ExportManager:
         
         y_position += 35
         
-        # Rânduri date
         painter.setPen(QColor(0, 0, 0))
         row_height = 25
         alternate = False
         
         for entry in schedule_data:
-            # Verifică dacă mai avem spațiu pe pagină
             if y_position + row_height > page_height - 50:
-                # Trecem la o nouă pagină
                 printer.newPage()
                 y_position = 50
                 
-            # Fundal alternant pentru rânduri
             if alternate:
                 painter.setBrush(QColor(245, 245, 245))
                 painter.setPen(Qt.PenStyle.NoPen)
@@ -171,7 +156,6 @@ class ExportManager:
                 
             alternate = not alternate
             
-            # Extragem datele
             day = entry.get("day", "-")
             time_range = entry.get("time", "-")
             subject = entry.get("subject", "-")
@@ -187,10 +171,9 @@ class ExportManager:
                 conditions = "-"
                 precip_text = "-"
                 
-            # Desenăm datele
-            painter.drawText(60, y_position + 15, day[:10])  # Limităm lungimea
+            painter.drawText(60, y_position + 15, day[:10])
             painter.drawText(130, y_position + 15, time_range)
-            painter.drawText(230, y_position + 15, subject[:20])  # Limităm lungimea
+            painter.drawText(230, y_position + 15, subject[:20])
             painter.drawText(360, y_position + 15, temp)
             painter.drawText(430, y_position + 15, conditions[:15])
             painter.drawText(520, y_position + 15, precip_text)
@@ -215,11 +198,7 @@ class ExportManager:
     ) -> int:
         """
         Desenează secțiunea cu statistici în PDF
-        
-        Returns:
-            Noua poziție Y după desenare
         """
-        # Titlu secțiune
         font_section = QFont("Arial", 14, QFont.Weight.Bold)
         painter.setFont(font_section)
         painter.setPen(QColor(0, 51, 102))
@@ -227,13 +206,11 @@ class ExportManager:
         painter.drawText(50, y_position, "📊 Statistici meteo")
         y_position += 30
         
-        # Casetă pentru statistici
         stats_box_height = 80
         painter.setBrush(QColor(240, 248, 255))
         painter.setPen(QPen(QColor(70, 130, 180), 2))
         painter.drawRoundedRect(50, y_position, page_width - 100, stats_box_height, 10, 10)
         
-        # Text statistici
         font_stats = QFont("Arial", 11)
         painter.setFont(font_stats)
         painter.setPen(QColor(0, 0, 0))
@@ -260,14 +237,7 @@ class ExportManager:
     def export_to_csv(self, schedule_data: List[Dict]) -> bool:
         """
         Exportă datele în format CSV
-        
-        Args:
-            schedule_data: Lista cu intrări din orar și date meteo
-            
-        Returns:
-            True dacă exportul a reușit, False altfel
         """
-        # Dialog pentru selectarea fișierului
         file_path, _ = QFileDialog.getSaveFileName(
             self.parent,
             "Salvează raportul CSV",
@@ -280,7 +250,6 @@ class ExportManager:
             
         try:
             with open(file_path, 'w', newline='', encoding='utf-8-sig') as csvfile:
-                # Definim coloanele
                 fieldnames = [
                     'Zi', 'Data', 'Interval Orar', 'Materie/Activitate', 'Locatie',
                     'Temperatura (°C)', 'Conditii', 'Probabilitate Precipitatii (%)',
@@ -290,7 +259,6 @@ class ExportManager:
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 writer.writeheader()
                 
-                # Scriem datele
                 for entry in schedule_data:
                     weather = entry.get("weather")
                     
@@ -318,7 +286,6 @@ class ExportManager:
                     
                     writer.writerow(row)
                     
-            # Mesaj de succes
             if self.parent:
                 QMessageBox.information(
                     self.parent,
@@ -341,9 +308,6 @@ class ExportManager:
     def quick_print(self, schedule_data: List[Dict]):
         """
         Deschide dialogul de printare rapid
-        
-        Args:
-            schedule_data: Datele care trebuie printate
         """
         printer = QPrinter(QPrinter.PrinterMode.HighResolution)
         

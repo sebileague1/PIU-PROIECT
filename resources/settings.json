@@ -1,0 +1,14 @@
+{
+  "temperature_unit": "celsius",
+  "wind_unit": "km/h",
+  "update_interval_minutes": 5,
+  "auto_update_enabled": true,
+  "cache_duration_minutes": 10,
+  "notifications_enabled": true,
+  "rain_alert_enabled": true,
+  "extreme_weather_alert": true,
+  "rain_threshold": 40,
+  "location_name": "Iasi",
+  "forecast_days": 7,
+  "compact_mode": false
+}
