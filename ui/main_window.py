@@ -28,7 +28,6 @@ class MainWindow(QMainWindow):
     
     def __init__(self):
         super().__init__()
-        self.current_theme = "light"
         self.schedule_data = None
         self.weather_data = None
         self.enriched_entries = []
@@ -47,7 +46,7 @@ class MainWindow(QMainWindow):
         self.export_manager = ExportManager(self)
         
         self.init_ui()
-        self.apply_theme()
+        self.apply_theme() # Aplicăm tema întunecată o singură dată
         
         cached_weather = self.weather_service.load_weather_from_file()
         if cached_weather:
@@ -73,11 +72,6 @@ class MainWindow(QMainWindow):
         header_layout.addWidget(title_label)
         
         header_layout.addStretch()
-        
-        self.theme_button = QPushButton("🌙 Mod Întunecat")
-        self.theme_button.clicked.connect(self.toggle_theme)
-        self.theme_button.setFixedSize(150, 35)
-        header_layout.addWidget(self.theme_button)
         
         main_layout.addLayout(header_layout)
         
@@ -122,11 +116,13 @@ class MainWindow(QMainWindow):
         
         # ==== TABELUL PRINCIPAL ====
         self.create_schedule_table()
-        main_layout.addWidget(self.table)
+        # MODIFICAT: Setăm factorul de întindere la 3 (mai mare)
+        main_layout.addWidget(self.table, 3) 
         
         # ==== WIDGET GRAFICE (Sebastian M.) ====
         self.weather_chart = WeatherChartWidget(self)
-        main_layout.addWidget(self.weather_chart)
+        # MODIFICAT: Setăm factorul de întindere la 2 (mai mic)
+        main_layout.addWidget(self.weather_chart, 2)
         
     def create_schedule_table(self):
         """Creează tabelul pentru afișarea orarului și datelor meteo"""
@@ -326,143 +322,73 @@ class MainWindow(QMainWindow):
                 for col in range(3, 7):
                     self.table.setItem(row, col, QTableWidgetItem("-"))
             
-    def toggle_theme(self):
-        """Comută între tema light și dark"""
-        if self.current_theme == "light":
-            self.current_theme = "dark"
-            self.theme_button.setText("☀️ Mod Luminos")
-        else:
-            self.current_theme = "light"
-            self.theme_button.setText("🌙 Mod Întunecat")
-            
-        self.apply_theme()
-        
     def apply_theme(self):
-        """Aplică tema vizuală curentă"""
-        if self.current_theme == "dark":
-            # Tema întunecată (MODIFICATĂ CU SCROLLBAR)
-            self.setStyleSheet("""
-                QMainWindow {
-                    background-color: #2b2b2b;
-                }
-                QWidget {
-                    background-color: #2b2b2b;
-                    color: #ffffff;
-                }
-                QLabel {
-                    color: #ffffff;
-                }
-                QPushButton {
-                    background-color: #3d3d3d;
-                    color: #ffffff;
-                    border: 1px solid #555555;
-                    border-radius: 5px;
-                    padding: 8px;
-                }
-                QPushButton:hover {
-                    background-color: #4d4d4d;
-                }
-                QPushButton:pressed {
-                    background-color: #2d2d2d;
-                }
-                QPushButton:disabled {
-                    background-color: #1d1d1d;
-                    color: #666666;
-                }
-                QTableWidget {
-                    background-color: #3d3d3d;
-                    color: #ffffff;
-                    gridline-color: #555555;
-                }
-                QHeaderView::section {
-                    background-color: #4d4d4d;
-                    color: #ffffff;
-                    padding: 5px;
-                    border: 1px solid #555555;
-                }
-                
-                /* === STIL PENTRU SCROLLBAR (DARK) === */
-                QScrollBar:vertical {
-                    border: 1px solid #555555;
-                    background: #3d3d3d;
-                    width: 15px; /* Lățimea barei */
-                    margin: 20px 0 20px 0;
-                }
-                QScrollBar::handle:vertical {
-                    background: #555555; /* Culoarea cursorului */
-                    min-height: 20px;
-                    border-radius: 7px;
-                }
-                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-                    height: 20px;
-                    subcontrol-origin: margin;
-                }
-                QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                    background: none;
-                }
-            """)
-        else:
-            # Tema luminoasă (MODIFICATĂ CU SCROLLBAR)
-            self.setStyleSheet("""
-                QMainWindow {
-                    background-color: #f5f5ff;
-                }
-                QWidget {
-                    background-color: #f5f5f5;
-                    color: #000000;
-                }
-                QLabel {
-                    color: #000000;
-                }
-                QPushButton {
-                    background-color: #ffffff;
-                    color: #000000;
-                    border: 1px solid #cccccc;
-                    border-radius: 5px;
-                    padding: 8px;
-                }
-                QPushButton:hover {
-                    background-color: #e8e8e8;
-                }
-                QPushButton:pressed {
-                    background-color: #d0d0d0;
-                }
-                QPushButton:disabled {
-                    background-color: #f0f0f0;
-                    color: #999999;
-                }
-                QTableWidget {
-                    background-color: #ffffff;
-                    color: #000000;
-                    gridline-color: #cccccc;
-                }
-                QHeaderView::section {
-                    background-color: #e8e8e8;
-                    color: #000000;
-                    padding: 5px;
-                    border: 1px solid #cccccc;
-                }
-                
-                /* === STIL PENTRU SCROLLBAR (LIGHT) === */
-                QScrollBar:vertical {
-                    border: 1px solid #cccccc;
-                    background: #f0f0f0;
-                    width: 15px; /* Lățimea barei */
-                    margin: 20px 0 20px 0;
-                }
-                QScrollBar::handle:vertical {
-                    background: #c0c0c0; /* Culoarea cursorului */
-                    min-height: 20px;
-                    border-radius: 7px;
-                }
-                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-                    height: 20px;
-                    subcontrol-origin: margin;
-                }
-                QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                    background: none;
-                }
-            """)
+        """Aplică tema vizuală întunecată (singura temă)"""
+        self.setStyleSheet("""
+            QMainWindow {
+                background-color: #2b2b2b;
+            }
+            QWidget {
+                background-color: #2b2b2b;
+                color: #ffffff;
+            }
+            QLabel {
+                color: #ffffff;
+            }
+            QPushButton {
+                background-color: #3d3d3d;
+                color: #ffffff;
+                border: 1px solid #555555;
+                border-radius: 5px;
+                padding: 8px;
+            }
+            QPushButton:hover {
+                background-color: #4d4d4d;
+            }
+            QPushButton:pressed {
+                background-color: #2d2d2d;
+            }
+            QPushButton:disabled {
+                background-color: #1d1d1d;
+                color: #666666;
+            }
+            QTableWidget {
+                background-color: #3d3d3d;
+                color: #ffffff;
+                gridline-color: #555555;
+                font-size: 14px;
+            }
+            QTableWidget::item:selected {
+                background-color: #555555;
+                color: #ffffff;
+            }
+            QHeaderView::section {
+                background-color: #4d4d4d;
+                color: #ffffff;
+                padding: 5px;
+                border: 1px solid #555555;
+            }
+            
+            /* STIL PENTRU SCROLLBAR (DARK) */
+            QScrollBar:vertical {
+                border: 1px solid #555555;
+                background: #3d3d3d;
+                width: 15px;
+                margin: 20px 0 20px 0;
+            }
+            QScrollBar::handle:vertical {
+                background: #555555;
+                min-height: 20px;
+                border-radius: 7px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 20px;
+                subcontrol-origin: margin;
+            }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                background: none;
+            }
+        """)
             
     def open_settings(self):
         """Deschide dialogul de setări"""
@@ -474,7 +400,6 @@ class MainWindow(QMainWindow):
         """Aplică noile setări după salvare"""
         self.weather_service.set_temperature_unit(settings.get("temperature_unit", "celsius"))
         
-        # (MODIFICAT AICI)
         self.weather_service.set_location(settings.get("location_name", "București"))
         
         self.notification_manager.enable_notifications(settings.get("notifications_enabled", True))
@@ -497,45 +422,25 @@ class MainWindow(QMainWindow):
         
         <h3>1️⃣ Încarcă Orar</h3>
         <p>Click pe <b>"📂 Încarcă Orar"</b> și selectează un fișier JSON sau CSV cu orarul tău.</p>
-        <p><b>Format JSON:</b></p>
-        <pre>{
-  "schedule": [
-    {
-      "day": "Luni",
-      "time": "08:00-10:00",
-      "subject": "Programare"
-    }
-  ]
-}</pre>
         
         <h3>2️⃣ Actualizează Meteo</h3>
         <p>Click pe <b>"🔄 Actualizează Meteo"</b> pentru a obține date meteo de la API-ul Open-Meteo.</p>
-        <p>Datele sunt actualizate automat pentru locația configurată în setări (default: București).</p>
         
         <h3>3️⃣ Vizualizează</h3>
         <p>• <b>Tabelul</b> arată orarul tău cu date meteo pentru fiecare interval</p>
         <p>• <b>Graficele</b> arată evoluția temperaturii și precipitațiilor</p>
-        <p>• Rândurile colorate indică risc de ploaie (roșu = risc mare, galben = moderat, albastru = ușor)</p>
-        
-        <h3>4️⃣ Notificări</h3>
-        <p>Vei primi notificări automate dacă există risc de ploaie pentru activitățile de mâine.</p>
         
         <h3>5️⃣ Setări</h3>
         <p>Personalizează aplicația din <b>"⚙️ Setări"</b>:</p>
         <p>• Schimbă între Celsius și Fahrenheit</p>
         <p>• Configurează locația (după nume)</p>
         <p>• Ajustează frecvența actualizărilor</p>
-        <p>• Activează/dezactivează notificările</p>
         
         <h3>6️⃣ Export</h3>
-        <p>Exportă raportul în <b>PDF</b> sau <b>CSV</b> pentru arhivare sau distribuire.</p>
-        
-        <h3>7️⃣ Teme</h3>
-        <p>Comută între <b>Mod Luminos</b> și <b>Mod Întunecat</b> pentru confort vizual.</p>
+        <p>Exportă raportul în <b>PDF</b> sau <b>CSV</b>.</p>
         
         <hr>
-        <p><b>💡 Sursa datelor:</b> API Open-Meteo (gratuit, fără înregistrare necesară)</p>
-        <p><b>📍 Locație implicită:</b> București</p>
+        <p><b>💡 Sursa datelor:</b> API Open-Meteo</p>
         """
         
         msg = QMessageBox(self)

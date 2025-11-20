@@ -95,6 +95,7 @@ class SettingsDialog(QDialog):
         self.extreme_weather_check.setChecked(True)
         notif_layout.addWidget(self.extreme_weather_check)
         
+        # Prag minim pentru notificări ploaie
         threshold_layout = QHBoxLayout()
         threshold_label = QLabel("Prag alertă ploaie:")
         self.rain_threshold_spin = QSpinBox()
@@ -102,6 +103,7 @@ class SettingsDialog(QDialog):
         self.rain_threshold_spin.setMaximum(100)
         self.rain_threshold_spin.setValue(30)
         self.rain_threshold_spin.setSuffix("%")
+        self.rain_threshold_spin.setMinimumWidth(80) # <-- MODIFICAT AICI (LĂȚIME MĂRITĂ)
         threshold_layout.addWidget(threshold_label)
         threshold_layout.addWidget(self.rain_threshold_spin)
         threshold_layout.addStretch()
@@ -125,6 +127,7 @@ class SettingsDialog(QDialog):
         display_layout = QFormLayout()
         display_group.setLayout(display_layout)
         
+        # Număr de zile afișate
         self.forecast_days_spin = QSpinBox()
         self.forecast_days_spin.setMinimum(1)
         self.forecast_days_spin.setMaximum(7)
@@ -132,6 +135,7 @@ class SettingsDialog(QDialog):
         self.forecast_days_spin.setSuffix(" zile")
         display_layout.addRow("Zile prognoză:", self.forecast_days_spin)
         
+        # Checkbox pentru modul compact
         self.compact_mode_check = QCheckBox("Mod compact (mai puține detalii)")
         display_layout.addRow("", self.compact_mode_check)
         
@@ -140,16 +144,19 @@ class SettingsDialog(QDialog):
         # === BUTOANE ===
         buttons_layout = QHBoxLayout()
         
+        # Buton restaurare valori implicite
         self.reset_button = QPushButton("🔄 Restaurează valori implicite")
         self.reset_button.clicked.connect(self.reset_to_defaults)
         buttons_layout.addWidget(self.reset_button)
         
         buttons_layout.addStretch()
         
+        # Buton anulare
         self.cancel_button = QPushButton("Anulează")
         self.cancel_button.clicked.connect(self.reject)
         buttons_layout.addWidget(self.cancel_button)
         
+        # Buton salvare
         self.save_button = QPushButton("💾 Salvează")
         self.save_button.clicked.connect(self.save_settings)
         self.save_button.setDefault(True)
