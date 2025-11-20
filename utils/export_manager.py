@@ -1,3 +1,8 @@
+"""
+Funcționalitate de export în format PDF și CSV
+Responsabil: Moscalu Sebastian
+"""
+
 from PyQt6.QtPrintSupport import QPrinter, QPrintDialog
 from PyQt6.QtGui import QPainter, QFont, QColor, QPen
 from PyQt6.QtCore import QRect, Qt, QDate

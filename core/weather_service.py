@@ -1,3 +1,8 @@
+"""
+Serviciu pentru obținerea datelor meteo de la API
+Responsabil: Danalache Sebastian
+"""
+
 from PyQt6.QtCore import QObject, pyqtSignal, QUrl
 from PyQt6.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 import json

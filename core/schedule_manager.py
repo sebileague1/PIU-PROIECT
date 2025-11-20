@@ -1,3 +1,8 @@
+"""
+Gestionare fișiere orar (JSON/CSV)
+Responsabil: Danalache Sebastian
+"""
+
 import json
 import csv
 from datetime import datetime, timedelta

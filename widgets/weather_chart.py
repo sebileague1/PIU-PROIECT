@@ -1,3 +1,8 @@
+"""
+Widget pentru grafice interactive de temperatură și precipitații
+Responsabil: Moscalu Sebastian
+"""
+
 import pyqtgraph as pg
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel
 from PyQt6.QtCore import Qt
@@ -5,6 +10,11 @@ from datetime import datetime
 from typing import List, Dict, Optional
 
 class WeatherChartWidget(QWidget):
+    """
+    Widget care afișează grafice interactive pentru:
+    - Temperatura pe parcursul zilei/săptămânii
+    - Probabilitatea de precipitații
+    """
     
     def __init__(self, parent=None):
         super().__init__(parent)
