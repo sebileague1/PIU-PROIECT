@@ -1,8 +1,3 @@
-"""
-Dialog pentru setările aplicației
-Responsabil: Moscalu Sebastian
-"""
-
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
                              QPushButton, QComboBox, QSpinBox, QGroupBox,
                              QCheckBox, QLineEdit, QFormLayout, QMessageBox)
@@ -12,11 +7,11 @@ from pathlib import Path
 
 class SettingsDialog(QDialog):
     """
-    Dialog pentru configurarea setărilor aplicației:
-    - Unități de măsură (Celsius/Fahrenheit)
-    - Frecvența actualizării datelor
-    - Activare/dezactivare notificări
-    - Locație pentru date meteo
+    Dialog pentru configurarea setarilor aplicatiei:
+    - Unitati de masura (Celsius/Fahrenheit)
+    - Frecventa actualizarii datelor
+    - Activare/dezactivare notificari
+    - Locatie pentru date meteo
     """
     
     settings_changed = pyqtSignal(dict)
@@ -29,8 +24,8 @@ class SettingsDialog(QDialog):
         self.load_current_settings()
         
     def init_ui(self):
-        """Inițializează interfața dialogului"""
-        self.setWindowTitle("⚙️ Setări WeatherScheduler")
+        """Initializeaza interfata dialogului"""
+        self.setWindowTitle("⚙️ Setari WeatherScheduler")
         self.setModal(True)
         self.setMinimumWidth(500)
         self.setMinimumHeight(600)
@@ -38,22 +33,20 @@ class SettingsDialog(QDialog):
         layout = QVBoxLayout()
         self.setLayout(layout)
         
-        # === SECȚIUNEA UNITĂȚI ===
-        units_group = QGroupBox("🌡️ Unități de măsură")
+        units_group = QGroupBox("🌡️ Unitati de masura")
         units_layout = QFormLayout()
         units_group.setLayout(units_layout)
         
         self.temp_unit_combo = QComboBox()
         self.temp_unit_combo.addItems(["Celsius (°C)", "Fahrenheit (°F)"])
-        units_layout.addRow("Temperatură:", self.temp_unit_combo)
+        units_layout.addRow("Temperatura:", self.temp_unit_combo)
         
         self.wind_unit_combo = QComboBox()
         self.wind_unit_combo.addItems(["km/h", "m/s", "mph"])
-        units_layout.addRow("Viteză vânt:", self.wind_unit_combo)
+        units_layout.addRow("Viteza vant:", self.wind_unit_combo)
         
         layout.addWidget(units_group)
         
-        # === SECȚIUNEA ACTUALIZARE DATE ===
         update_group = QGroupBox("🔄 Actualizare date")
         update_layout = QFormLayout()
         update_group.setLayout(update_layout)
@@ -65,7 +58,7 @@ class SettingsDialog(QDialog):
         self.update_interval_spin.setSuffix(" minute")
         update_layout.addRow("Interval verificare:", self.update_interval_spin)
         
-        self.auto_update_check = QCheckBox("Activează verificarea automată")
+        self.auto_update_check = QCheckBox("Activeaza verificarea automata")
         self.auto_update_check.setChecked(True)
         update_layout.addRow("", self.auto_update_check)
         
@@ -78,32 +71,30 @@ class SettingsDialog(QDialog):
         
         layout.addWidget(update_group)
         
-        # === SECȚIUNEA NOTIFICĂRI ===
-        notif_group = QGroupBox("🔔 Notificări")
+        notif_group = QGroupBox("🔔 Notificari")
         notif_layout = QVBoxLayout()
         notif_group.setLayout(notif_layout)
         
-        self.notif_enabled_check = QCheckBox("Activează notificările")
+        self.notif_enabled_check = QCheckBox("Activeaza notificarile")
         self.notif_enabled_check.setChecked(True)
         notif_layout.addWidget(self.notif_enabled_check)
         
-        self.rain_alert_check = QCheckBox("Alertă pentru risc de ploaie (>30%)")
+        self.rain_alert_check = QCheckBox("Alerta pentru risc de ploaie (>30%)")
         self.rain_alert_check.setChecked(True)
         notif_layout.addWidget(self.rain_alert_check)
         
-        self.extreme_weather_check = QCheckBox("Alertă pentru condiții extreme")
+        self.extreme_weather_check = QCheckBox("Alerta pentru conditii extreme")
         self.extreme_weather_check.setChecked(True)
         notif_layout.addWidget(self.extreme_weather_check)
         
-        # Prag minim pentru notificări ploaie
         threshold_layout = QHBoxLayout()
-        threshold_label = QLabel("Prag alertă ploaie:")
+        threshold_label = QLabel("Prag alerta ploaie:")
         self.rain_threshold_spin = QSpinBox()
         self.rain_threshold_spin.setMinimum(10)
         self.rain_threshold_spin.setMaximum(100)
         self.rain_threshold_spin.setValue(30)
         self.rain_threshold_spin.setSuffix("%")
-        self.rain_threshold_spin.setMinimumWidth(80) # <-- MODIFICAT AICI (LĂȚIME MĂRITĂ)
+        self.rain_threshold_spin.setMinimumWidth(80)
         threshold_layout.addWidget(threshold_label)
         threshold_layout.addWidget(self.rain_threshold_spin)
         threshold_layout.addStretch()
@@ -111,53 +102,46 @@ class SettingsDialog(QDialog):
         
         layout.addWidget(notif_group)
         
-        # === SECȚIUNEA LOCAȚIE (MODIFICATĂ) ===
-        location_group = QGroupBox("📍 Locație")
+        location_group = QGroupBox("📍 Locatie")
         location_layout = QFormLayout()
         location_group.setLayout(location_layout)
         
         self.location_input = QLineEdit()
-        self.location_input.setPlaceholderText("ex: Iași, Bacău, București")
-        location_layout.addRow("Nume Oraș:", self.location_input)
+        self.location_input.setPlaceholderText("ex: Iasi, Bacau, Bucuresti")
+        location_layout.addRow("Nume Oras:", self.location_input)
         
         layout.addWidget(location_group)
         
-        # === SECȚIUNEA AFIȘARE ===
-        display_group = QGroupBox("🎨 Afișare")
+        display_group = QGroupBox("🎨 Afisare")
         display_layout = QFormLayout()
         display_group.setLayout(display_layout)
         
-        # Număr de zile afișate
         self.forecast_days_spin = QSpinBox()
         self.forecast_days_spin.setMinimum(1)
         self.forecast_days_spin.setMaximum(7)
         self.forecast_days_spin.setValue(7)
         self.forecast_days_spin.setSuffix(" zile")
-        display_layout.addRow("Zile prognoză:", self.forecast_days_spin)
+        display_layout.addRow("Zile prognoza:", self.forecast_days_spin)
         
-        # Checkbox pentru modul compact
-        self.compact_mode_check = QCheckBox("Mod compact (mai puține detalii)")
+        self.compact_mode_check = QCheckBox("Mod compact (mai putine detalii)")
         display_layout.addRow("", self.compact_mode_check)
         
         layout.addWidget(display_group)
         
-        # === BUTOANE ===
+
         buttons_layout = QHBoxLayout()
         
-        # Buton restaurare valori implicite
-        self.reset_button = QPushButton("🔄 Restaurează valori implicite")
+        self.reset_button = QPushButton("🔄 Restaureaza valori implicite")
         self.reset_button.clicked.connect(self.reset_to_defaults)
         buttons_layout.addWidget(self.reset_button)
         
         buttons_layout.addStretch()
         
-        # Buton anulare
-        self.cancel_button = QPushButton("Anulează")
+        self.cancel_button = QPushButton("Anuleaza")
         self.cancel_button.clicked.connect(self.reject)
         buttons_layout.addWidget(self.cancel_button)
         
-        # Buton salvare
-        self.save_button = QPushButton("💾 Salvează")
+        self.save_button = QPushButton("💾 Salveaza")
         self.save_button.clicked.connect(self.save_settings)
         self.save_button.setDefault(True)
         buttons_layout.addWidget(self.save_button)
@@ -165,8 +149,8 @@ class SettingsDialog(QDialog):
         layout.addLayout(buttons_layout)
         
     def load_current_settings(self):
-        """Încarcă setările curente în interfață"""
-        # Unități
+        """Incarca setarile curente in interfata"""
+
         if self.settings.get("temperature_unit", "celsius") == "fahrenheit":
             self.temp_unit_combo.setCurrentIndex(1)
         else:
@@ -177,48 +161,38 @@ class SettingsDialog(QDialog):
         if wind_index >= 0:
             self.wind_unit_combo.setCurrentIndex(wind_index)
             
-        # Actualizare
         self.update_interval_spin.setValue(self.settings.get("update_interval_minutes", 60))
         self.auto_update_check.setChecked(self.settings.get("auto_update_enabled", True))
         self.cache_duration_spin.setValue(self.settings.get("cache_duration_minutes", 30))
         
-        # Notificări
         self.notif_enabled_check.setChecked(self.settings.get("notifications_enabled", True))
         self.rain_alert_check.setChecked(self.settings.get("rain_alert_enabled", True))
         self.extreme_weather_check.setChecked(self.settings.get("extreme_weather_alert", True))
         self.rain_threshold_spin.setValue(self.settings.get("rain_threshold", 30))
         
-        # Locație (MODIFICAT)
         self.location_input.setText(self.settings.get("location_name", "București"))
         
-        # Afișare
         self.forecast_days_spin.setValue(self.settings.get("forecast_days", 7))
         self.compact_mode_check.setChecked(self.settings.get("compact_mode", False))
         
     def save_settings(self):
-        """Salvează setările și emite semnalul de modificare"""
+        """Salveaza setarile si emite semnalul de modificare"""
         try:
-            # Construim dicționarul cu noile setări
             new_settings = {
-                # Unități
                 "temperature_unit": "celsius" if self.temp_unit_combo.currentIndex() == 0 else "fahrenheit",
                 "wind_unit": self.wind_unit_combo.currentText(),
                 
-                # Actualizare
                 "update_interval_minutes": self.update_interval_spin.value(),
                 "auto_update_enabled": self.auto_update_check.isChecked(),
                 "cache_duration_minutes": self.cache_duration_spin.value(),
                 
-                # Notificări
                 "notifications_enabled": self.notif_enabled_check.isChecked(),
                 "rain_alert_enabled": self.rain_alert_check.isChecked(),
                 "extreme_weather_alert": self.extreme_weather_check.isChecked(),
                 "rain_threshold": self.rain_threshold_spin.value(),
                 
-                # Locație (MODIFICAT)
                 "location_name": self.location_input.text().strip(),
                 
-                # Afișare
                 "forecast_days": self.forecast_days_spin.value(),
                 "compact_mode": self.compact_mode_check.isChecked()
             }
@@ -233,15 +207,15 @@ class SettingsDialog(QDialog):
             QMessageBox.critical(
                 self,
                 "Eroare",
-                f"Nu s-au putut salva setările:\n{str(e)}"
+                f"Nu s-au putut salva setarile:\n{str(e)}"
             )
             
     def reset_to_defaults(self):
-        """Restaurează valorile implicite"""
+        """Restaureaza valorile implicite"""
         reply = QMessageBox.question(
             self,
             "Confirmare",
-            "Sigur dorești să restaurezi toate setările la valorile implicite?",
+            "Sigur doresti sa restaurezi toate setarile la valorile implicite?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         
@@ -250,7 +224,7 @@ class SettingsDialog(QDialog):
             self.load_current_settings()
             
     def load_settings(self) -> dict:
-        """Încarcă setările din fișier"""
+        """Incarca setarile din fisier"""
         settings_path = Path("resources/settings.json")
         
         try:
@@ -258,12 +232,12 @@ class SettingsDialog(QDialog):
                 with open(settings_path, 'r', encoding='utf-8') as f:
                     return json.load(f)
         except Exception as e:
-            print(f"Nu s-au putut încărca setările: {e}")
+            print(f"Nu s-au putut incarca setarile: {e}")
             
         return self.get_default_settings()
         
     def persist_settings(self):
-        """Salvează setările în fișier"""
+        """Salveaza setarile in fisier"""
         settings_path = Path("resources/settings.json")
         
         try:
@@ -273,11 +247,11 @@ class SettingsDialog(QDialog):
                 json.dump(self.settings, f, indent=2, ensure_ascii=False)
                 
         except Exception as e:
-            print(f"Nu s-au putut salva setările: {e}")
+            print(f"Nu s-au putut salva setarile: {e}")
             
     @staticmethod
     def get_default_settings() -> dict:
-        """Returnează setările implicite"""
+        """Returneaza setarile implicite"""
         return {
             "temperature_unit": "celsius",
             "wind_unit": "km/h",
@@ -288,7 +262,7 @@ class SettingsDialog(QDialog):
             "rain_alert_enabled": True,
             "extreme_weather_alert": True,
             "rain_threshold": 30,
-            "location_name": "București", # (MODIFICAT)
+            "location_name": "București",
             "forecast_days": 7,
             "compact_mode": False
         }

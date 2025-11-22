@@ -3,7 +3,7 @@
     {
       "day": "Luni",
       "time": "08:00-10:00",
-      "subject": "Programare în limbaje de asamblare",
+      "subject": "Programare in limbaje de asamblare",
       "location": "C309"
     },
     {
@@ -15,7 +15,7 @@
     {
       "day": "Luni",
       "time": "12:00-14:00",
-      "subject": "Programare orientată pe obiecte",
+      "subject": "Programare orientata pe obiecte",
       "location": "C408"
     },
     {
@@ -27,25 +27,25 @@
     {
       "day": "Marți",
       "time": "10:00-12:00",
-      "subject": "Algoritmi și structuri de date",
+      "subject": "Algoritmi si structuri de date",
       "location": "C408"
     },
     {
       "day": "Marți",
       "time": "14:00-16:00",
-      "subject": "Matematică aplicată",
+      "subject": "Matematica aplicata",
       "location": "A203"
     },
     {
       "day": "Miercuri",
       "time": "08:00-10:00",
-      "subject": "Proiectare interfețe utilizator",
+      "subject": "Proiectare interfete utilizator",
       "location": "C309"
     },
     {
       "day": "Miercuri",
       "time": "10:00-12:00",
-      "subject": "Rețele de calculatoare",
+      "subject": "Retele de calculatoare",
       "location": "C408"
     },
     {
@@ -63,7 +63,7 @@
     {
       "day": "Joi",
       "time": "10:00-12:00",
-      "subject": "Securitate informatică",
+      "subject": "Securitate informatica",
       "location": "C309"
     },
     {

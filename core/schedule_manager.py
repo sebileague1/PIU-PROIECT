@@ -1,15 +1,10 @@
-"""
-Gestionare fișiere orar (JSON/CSV)
-Responsabil: Danalache Sebastian
-"""
-
 import json
 import csv
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
 class ScheduleManager:
-    """Gestionează încărcarea și validarea orarului personalizat"""
+    """Gestioneaza incarcarea si validarea orarului personalizat"""
     
     def __init__(self):
         self.schedule = []
@@ -17,16 +12,16 @@ class ScheduleManager:
         
     def load_from_json(self, file_path: str) -> Dict:
         """
-        Încarcă orarul din fișier JSON
+        Incarca orarul din fisier JSON
         
-        Format așteptat:
+        Format asteptat:
         {
             "schedule": [
                 {
                     "day": "Luni",
                     "time": "08:00-10:00",
                     "subject": "Programare",
-                    "location": "C309"  # opțional
+                    "location": "C309"  # optional
                 }
             ]
         }
@@ -35,13 +30,11 @@ class ScheduleManager:
             with open(file_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 
-            # Validează structura
             if "schedule" not in data:
-                raise ValueError("Fișierul JSON trebuie să conțină cheia 'schedule'")
+                raise ValueError("Fisierul JSON trebuie sa contina cheia 'schedule'")
                 
             schedule_entries = data["schedule"]
             
-            # Validează fiecare intrare
             validated_schedule = []
             for entry in schedule_entries:
                 validated_entry = self._validate_entry(entry)
@@ -57,9 +50,9 @@ class ScheduleManager:
             
     def load_from_csv(self, file_path: str) -> Dict:
         """
-        Încarcă orarul din fișier CSV
+        Incarca orarul din fisier CSV
         
-        Format așteptat (cu header):
+        Format asteptat (cu header):
         day,time,subject,location
         Luni,08:00-10:00,Programare,C309
         """
@@ -70,7 +63,6 @@ class ScheduleManager:
                 csv_reader = csv.DictReader(f)
                 
                 for row in csv_reader:
-                    # Creează dict din rândul CSV
                     entry = {
                         "day": row.get("day", "").strip(),
                         "time": row.get("time", "").strip(),
@@ -88,30 +80,26 @@ class ScheduleManager:
             return {"status": "error", "message": f"Eroare la citirea CSV: {str(e)}"}
             
     def _validate_entry(self, entry: Dict) -> Dict:
-        """Validează o intrare din orar"""
-        # Verifică câmpurile obligatorii
+        """Valideaza o intrare din orar"""
         if "day" not in entry or not entry["day"]:
-            raise ValueError("Câmpul 'day' lipsește sau este gol")
+            raise ValueError("Campul 'day' lipseste sau este gol")
         if "time" not in entry or not entry["time"]:
-            raise ValueError("Câmpul 'time' lipsește sau este gol")
+            raise ValueError("Campul 'time' lipseste sau este gol")
         if "subject" not in entry or not entry["subject"]:
-            raise ValueError("Câmpul 'subject' lipsește sau este gol")
+            raise ValueError("Campul 'subject' lipseste sau este gol")
             
-        # Validează formatul intervalului orar (HH:MM-HH:MM)
         time_str = entry["time"]
         if "-" not in time_str:
-            raise ValueError(f"Format invalid pentru timp: {time_str}. Folosește formatul HH:MM-HH:MM")
+            raise ValueError(f"Format invalid pentru timp: {time_str}. Foloseste formatul HH:MM-HH:MM")
             
         start_time, end_time = time_str.split("-")
         
-        # Validează că sunt formate valide de timp
         try:
             datetime.strptime(start_time.strip(), "%H:%M")
             datetime.strptime(end_time.strip(), "%H:%M")
         except ValueError:
             raise ValueError(f"Format invalid pentru timp: {time_str}")
             
-        # Returnează intrarea validată
         return {
             "day": entry["day"].strip(),
             "time": entry["time"].strip(),
@@ -120,28 +108,28 @@ class ScheduleManager:
         }
         
     def get_entries_for_day(self, day_name: str) -> List[Dict]:
-        """Returnează toate intrările pentru o anumită zi"""
+        """Returneaza toate intrarile pentru o anumita zi"""
         return [entry for entry in self.schedule if entry["day"].lower() == day_name.lower()]
         
     def get_entries_for_tomorrow(self) -> List[Dict]:
-        """Returnează intrările pentru ziua de mâine"""
+        """Returneaza intrarile pentru ziua de maine"""
         tomorrow = datetime.now() + timedelta(days=1)
         day_name = self.days_of_week[tomorrow.weekday()]
         return self.get_entries_for_day(day_name)
         
     def get_current_week_schedule(self) -> List[Dict]:
-        """Returnează orarul pentru săptămâna curentă"""
+        """Returneaza orarul pentru saptamana curenta"""
         return self.schedule
         
     def get_time_slots(self) -> List[str]:
-        """Returnează o listă cu toate intervalele orare unice din orar"""
+        """Returneaza o lista cu toate intervalele orare unice din orar"""
         time_slots = set()
         for entry in self.schedule:
             time_slots.add(entry["time"])
         return sorted(list(time_slots))
         
     def export_to_json(self, file_path: str) -> bool:
-        """Exportă orarul curent în format JSON"""
+        """Exporta orarul curent in format JSON"""
         try:
             with open(file_path, 'w', encoding='utf-8') as f:
                 json.dump({"schedule": self.schedule}, f, ensure_ascii=False, indent=2)
@@ -151,13 +139,12 @@ class ScheduleManager:
             return False
             
     def export_to_csv(self, file_path: str) -> bool:
-        """Exportă orarul curent în format CSV"""
+        """Exporta orarul curent in format CSV"""
         try:
             with open(file_path, 'w', newline='', encoding='utf-8') as f:
                 if not self.schedule:
                     return False
                     
-                # Determină toate câmpurile posibile
                 fieldnames = ["day", "time", "subject", "location"]
                 
                 writer = csv.DictWriter(f, fieldnames=fieldnames)

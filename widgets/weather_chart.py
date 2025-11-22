@@ -1,10 +1,4 @@
-"""
-Widget pentru grafice interactive de temperatură și precipitații
-Responsabil: Moscalu Sebastian
-"""
-
 import pyqtgraph as pg
-# MODIFICAT: Am adăugat QSizePolicy
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSizePolicy
 from PyQt6.QtCore import Qt
 from datetime import datetime
@@ -12,46 +6,38 @@ from typing import List, Dict, Optional
 
 class WeatherChartWidget(QWidget):
     """
-    Widget care afișează grafice interactive pentru:
-    - Temperatura pe parcursul zilei/săptămânii
-    - Probabilitatea de precipitații
+    Widget care afiseaza grafice interactive pentru:
+    - Temperatura pe parcursul zilei/saptamanii
+    - Probabilitatea de precipitatii
     """
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        
-        # === MODIFICARE PENTRU DIMENSIUNE ===
-        # Setăm politica de mărime. Expanding pe orizontală, Preferred pe verticală.
+
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        # Setăm o înălțime maximă fixă pentru întregul widget de grafice
-        self.setMaximumHeight(450) # Forțează widget-ul să nu crească mai mult de atât
-        # ==================================
-        
+       
+        self.setMaximumHeight(450) 
         self.init_ui()
         
     def init_ui(self):
-        """Inițializează interfața widget-ului"""
+        """Initializeaza interfata widget-ului"""
         layout = QVBoxLayout()
         self.setLayout(layout)
         
-        # Titlu
         title = QLabel("📊 Grafice Meteo Interactive")
         title.setStyleSheet("font-size: 16px; font-weight: bold; padding: 10px; color: white;")
         layout.addWidget(title)
         
-        # Container pentru cele două grafice
         charts_layout = QHBoxLayout()
         
-        # ==== GRAFICUL TEMPERATURII ====
         temp_container = QWidget()
         temp_layout = QVBoxLayout()
         temp_container.setLayout(temp_layout)
         
-        temp_label = QLabel("🌡️ Temperatură")
+        temp_label = QLabel("🌡️ Temperatura")
         temp_label.setStyleSheet("font-weight: bold; color: white;")
         temp_layout.addWidget(temp_label)
         
-        # Creăm graficul pentru temperatură
         self.temp_plot = pg.PlotWidget()
         self.temp_plot.setBackground('#2b2b2b')
         self.temp_plot.setLabel('left', 'Temperatură', units='°C')
@@ -61,25 +47,20 @@ class WeatherChartWidget(QWidget):
         self.temp_plot.getAxis('left').setTextPen('w')
         self.temp_plot.getAxis('bottom').setTextPen('w')
         
-        # === REZOLVAREA ERORII: Corectat aici ===
-        # Salvăm legenda într-o variabilă și apoi setăm culoarea
         legend_temp = self.temp_plot.addLegend()
         legend_temp.setLabelTextColor('w')
-        # ========================================
-        
+       
         temp_layout.addWidget(self.temp_plot)
         charts_layout.addWidget(temp_container)
         
-        # ==== GRAFICUL PRECIPITAȚIILOR ====
         precip_container = QWidget()
         precip_layout = QVBoxLayout()
         precip_container.setLayout(precip_layout)
         
-        precip_label = QLabel("💧 Precipitații")
+        precip_label = QLabel("💧 Precipitatii")
         precip_label.setStyleSheet("font-weight: bold; color: white;")
         precip_layout.addWidget(precip_label)
         
-        # Creăm graficul pentru precipitații
         self.precip_plot = pg.PlotWidget()
         self.precip_plot.setBackground('#2b2b2b')
         self.precip_plot.setLabel('left', 'Probabilitate', units='%')
@@ -89,18 +70,14 @@ class WeatherChartWidget(QWidget):
         self.precip_plot.getAxis('left').setTextPen('w')
         self.precip_plot.getAxis('bottom').setTextPen('w')
         
-        # === REZOLVAREA ERORII: Corectat aici ===
-        # Salvăm legenda într-o variabilă și apoi setăm culoarea
         legend_precip = self.precip_plot.addLegend()
         legend_precip.setLabelTextColor('w')
-        # ========================================
         
         precip_layout.addWidget(self.precip_plot)
         charts_layout.addWidget(precip_container)
         
         layout.addLayout(charts_layout)
         
-        # Label pentru statistici
         self.stats_label = QLabel()
         self.stats_label.setStyleSheet("padding: 10px; background-color: #3d3d3d; border-radius: 5px; color: #ffffff;")
         self.stats_label.setWordWrap(True)
@@ -108,11 +85,11 @@ class WeatherChartWidget(QWidget):
         
     def update_charts(self, weather_data: Optional[Dict], schedule_entries: Optional[List[Dict]] = None):
         """
-        Actualizează graficele cu noile date meteo
+        Actualizeaza graficele cu noile date meteo
         """
         if not weather_data or "hourly" not in weather_data:
             self.clear_charts()
-            self.stats_label.setText("Nu există date meteo disponibile pentru grafice.")
+            self.stats_label.setText("Nu exista date meteo disponibile pentru grafice.")
             return
             
         hourly_data = weather_data["hourly"]
@@ -143,7 +120,7 @@ class WeatherChartWidget(QWidget):
                 precip_amounts.append(entry.get("precipitation", 0))
                 
             except (ValueError, KeyError) as e:
-                print(f"Eroare la procesarea intrării meteo: {e}")
+                print(f"Eroare la procesarea intrarii meteo: {e}")
                 continue
                 
         self._plot_temperature(timestamps, temperatures)
@@ -155,7 +132,7 @@ class WeatherChartWidget(QWidget):
         self._update_statistics(temperatures, precip_probabilities, precip_amounts)
         
     def _plot_temperature(self, timestamps: List[float], temperatures: List[float]):
-        """Desenează graficul temperaturii"""
+        """Deseneaza graficul temperaturii"""
         self.temp_plot.clear()
         
         if not timestamps or not temperatures:
@@ -166,7 +143,7 @@ class WeatherChartWidget(QWidget):
             timestamps, 
             temperatures, 
             pen=pen_temp, 
-            name='Temperatură',
+            name='Temperatura',
             symbol='o',
             symbolSize=5,
             symbolBrush=(220, 50, 50)
@@ -179,7 +156,7 @@ class WeatherChartWidget(QWidget):
             self.temp_plot.addLine(y=avg_temp, pen=pg.mkPen('r', style=Qt.PenStyle.DashLine, width=1))
             
     def _plot_precipitation(self, timestamps: List[float], probabilities: List[float], amounts: List[float]):
-        """Desenează graficul precipitațiilor"""
+        """Deseneaza graficul precipitatiilor"""
         self.precip_plot.clear()
         
         if not timestamps:
@@ -213,13 +190,13 @@ class WeatherChartWidget(QWidget):
                     size=15,
                     brush=pg.mkBrush(50, 50, 220, 200),
                     pen=pg.mkPen('b', width=2),
-                    name='Precipitații efective'
+                    name='Precipitatii efective'
                 )
                 self.precip_plot.addItem(scatter)
                 
     def _mark_schedule_intervals(self, schedule_entries: List[Dict], reference_time: datetime):
         """
-        Marchează intervalele orare din orar pe grafice cu zone colorate
+        Marcheaza intervalele orare din orar pe grafice cu zone colorate
         """
         for entry in schedule_entries:
             if "date" not in entry or "time" not in entry:
@@ -260,9 +237,9 @@ class WeatherChartWidget(QWidget):
                 continue
                 
     def _update_statistics(self, temperatures: List[float], probabilities: List[float], amounts: List[float]):
-        """Calculează și afișează statistici despre date"""
+        """Calculeaza si afiseaza statistici despre date"""
         if not temperatures:
-            self.stats_label.setText("Nu există suficiente date pentru statistici.")
+            self.stats_label.setText("Nu exista suficiente date pentru statistici.")
             return
             
         avg_temp = sum(temperatures) / len(temperatures)
@@ -280,21 +257,21 @@ class WeatherChartWidget(QWidget):
         Min: {min_temp:.1f}°C | 
         Max: {max_temp:.1f}°C | 
         Risc maxim ploaie: {max_precip_prob:.0f}% | 
-        Total precipitații: {total_precip:.1f}mm | 
+        Total precipitatii: {total_precip:.1f}mm | 
         Perioade cu risc ploaie: {rainy_periods}
         """
         
         self.stats_label.setText(stats_text)
         
     def clear_charts(self):
-        """Șterge conținutul graficelor"""
+        """Sterge continutul graficelor"""
         self.temp_plot.clear()
         self.precip_plot.clear()
-        self.stats_label.setText("Graficele vor fi actualizate după încărcarea datelor meteo.")
+        self.stats_label.setText("Graficele vor fi actualizate dupa incarcarea datelor meteo.")
         
     def export_chart_images(self, temp_path: str, precip_path: str) -> bool:
         """
-        Exportă graficele ca imagini PNG
+        Exporta graficele ca imagini PNG
         """
         try:
             exporter_temp = pg.exporters.ImageExporter(self.temp_plot.plotItem)
