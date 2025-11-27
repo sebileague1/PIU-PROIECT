@@ -19,9 +19,7 @@ class WeatherChartWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         
-        # Setăm politica de mărime. Expanding pe orizontală, Preferred pe verticală.
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        # Setăm o înălțime maximă fixă pentru întregul widget de grafice
         self.setMaximumHeight(450)
         
         self.init_ui()
@@ -31,15 +29,12 @@ class WeatherChartWidget(QWidget):
         layout = QVBoxLayout()
         self.setLayout(layout)
         
-        # Titlu
         title = QLabel("📊 Grafice Meteo Interactive")
         title.setStyleSheet("font-size: 16px; font-weight: bold; padding: 10px; color: white;")
         layout.addWidget(title)
         
-        # Container pentru cele două grafice
         charts_layout = QHBoxLayout()
         
-        # ==== GRAFICUL TEMPERATURII ====
         temp_container = QWidget()
         temp_layout = QVBoxLayout()
         temp_container.setLayout(temp_layout)
@@ -48,7 +43,6 @@ class WeatherChartWidget(QWidget):
         temp_label.setStyleSheet("font-weight: bold; color: white;")
         temp_layout.addWidget(temp_label)
         
-        # Creăm graficul pentru temperatură
         self.temp_plot = pg.PlotWidget()
         self.temp_plot.setBackground('#2b2b2b')
         self.temp_plot.setLabel('left', 'Temperatură', units='°C')
@@ -58,14 +52,12 @@ class WeatherChartWidget(QWidget):
         self.temp_plot.getAxis('left').setTextPen('w')
         self.temp_plot.getAxis('bottom').setTextPen('w')
         
-        # REZOLVAREA ERORII: Setăm legenda corect
         legend_temp = self.temp_plot.addLegend()
         legend_temp.setLabelTextColor('w')
         
         temp_layout.addWidget(self.temp_plot)
         charts_layout.addWidget(temp_container)
         
-        # ==== GRAFICUL PRECIPITAȚIILOR ====
         precip_container = QWidget()
         precip_layout = QVBoxLayout()
         precip_container.setLayout(precip_layout)
@@ -74,7 +66,6 @@ class WeatherChartWidget(QWidget):
         precip_label.setStyleSheet("font-weight: bold; color: white;")
         precip_layout.addWidget(precip_label)
         
-        # Creăm graficul pentru precipitații
         self.precip_plot = pg.PlotWidget()
         self.precip_plot.setBackground('#2b2b2b')
         self.precip_plot.setLabel('left', 'Probabilitate', units='%')
@@ -84,7 +75,6 @@ class WeatherChartWidget(QWidget):
         self.precip_plot.getAxis('left').setTextPen('w')
         self.precip_plot.getAxis('bottom').setTextPen('w')
         
-        # REZOLVAREA ERORII: Setăm legenda corect
         legend_precip = self.precip_plot.addLegend()
         legend_precip.setLabelTextColor('w')
         
@@ -93,7 +83,6 @@ class WeatherChartWidget(QWidget):
         
         layout.addLayout(charts_layout)
         
-        # Label pentru statistici
         self.stats_label = QLabel()
         self.stats_label.setStyleSheet("padding: 10px; background-color: #3d3d3d; border-radius: 5px; color: #ffffff;")
         self.stats_label.setWordWrap(True)
@@ -218,10 +207,8 @@ class WeatherChartWidget(QWidget):
             if "date" not in entry or "time" not in entry:
                 continue
                 
-            # === VERIFICARE ADĂUGATĂ AICI PENTRU A PREVENI CRASH-UL (TypeError) ===
             if entry.get("date") is None:
                 continue
-            # ======================================================================
             
             time_range = entry.get("time", "")
             if "-" not in time_range:
