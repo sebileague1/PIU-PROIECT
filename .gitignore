@@ -1,0 +1,17 @@
+# FISIERE ȘI FOLDERE DE MEDIU VIRTUAL
+.piu_env/
+piu_env/
+venv/
+
+# FISIERE PYTHON GENERATE AUTOMAT
+*.pyc
+__pycache__/
+
+# CACHE-URI SPECIFICE APLICAȚIEI ȘI SISTEMULUI
+# Exclude folderul de cache al VS Code
+.vscode/
+
+# Fisiere de date generate/cache-uri API
+# De obicei vrem să excludem datele mari sau sensibile.
+resources/*.json.bak
+resources/weather_cache.json
