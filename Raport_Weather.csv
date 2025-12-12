@@ -1,0 +1,16 @@
+﻿Zi,Interval,Materie,Temperatura,Conditii
+Luni,08:00-10:00,Programare in limbaje de asamblare,30.1,Ceata
+Luni,10:00-12:00,Proiectarea cu microprocesoare,32.6,Partial inorat
+Luni,12:00-14:00,Programare orientata pe obiecte,38.3,Predominant senin
+Marți,08:00-10:00,Baze de date,29.3,Ceata
+Marți,10:00-12:00,Algoritmi si structuri de date,29.2,Ceata
+Marți,14:00-16:00,Matematica aplicata,32.0,Ceata
+Miercuri,08:00-10:00,Proiectare interfete utilizator,29.5,Ceata
+Miercuri,10:00-12:00,Retele de calculatoare,30.2,Ceata
+Miercuri,12:00-14:00,Sisteme de operare,31.2,Ceata
+Joi,08:00-10:00,Ingineria programării,31.4,Ceata
+Joi,10:00-12:00,Securitate informatica,33.9,Inorat
+Joi,14:00-16:00,Dezvoltare web,43.7,Partial inorat
+Vineri,08:00-10:00,Proiect PIU,38.4,Inorat
+Vineri,10:00-12:00,Laboratoare programare,41.0,Ploaie usoara
+Vineri,12:00-14:00,Consultații,45.0,Predominant senin

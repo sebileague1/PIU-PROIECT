@@ -11,13 +11,14 @@ from typing import List, Dict, Optional
 
 class WeatherChartWidget(QWidget):
     """
-    Widget care afișează grafice interactive pentru:
-    - Temperatura pe parcursul zilei/săptămânii
-    - Probabilitatea de precipitații
+    Widget care afișează grafice interactive de temperatură și precipitații.
     """
     
-    def __init__(self, parent=None):
+    def __init__(self, data_processor, parent=None):
         super().__init__(parent)
+        self.data_processor = data_processor # Referința sigură
+        
+        self.temp_unit = "°C" 
         
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self.setMaximumHeight(450)
@@ -35,6 +36,7 @@ class WeatherChartWidget(QWidget):
         
         charts_layout = QHBoxLayout()
         
+        # ==== GRAFICUL TEMPERATURII ====
         temp_container = QWidget()
         temp_layout = QVBoxLayout()
         temp_container.setLayout(temp_layout)
@@ -45,10 +47,9 @@ class WeatherChartWidget(QWidget):
         
         self.temp_plot = pg.PlotWidget()
         self.temp_plot.setBackground('#2b2b2b')
-        self.temp_plot.setLabel('left', 'Temperatură', units='°C')
+        self.temp_plot.setLabel('left', 'Temperatură', units='') 
         self.temp_plot.setLabel('bottom', 'Timp')
         self.temp_plot.showGrid(x=True, y=True, alpha=0.3)
-        
         self.temp_plot.getAxis('left').setTextPen('w')
         self.temp_plot.getAxis('bottom').setTextPen('w')
         
@@ -58,6 +59,7 @@ class WeatherChartWidget(QWidget):
         temp_layout.addWidget(self.temp_plot)
         charts_layout.addWidget(temp_container)
         
+        # ==== GRAFICUL PRECIPITAȚIILOR ====
         precip_container = QWidget()
         precip_layout = QVBoxLayout()
         precip_container.setLayout(precip_layout)
@@ -71,7 +73,6 @@ class WeatherChartWidget(QWidget):
         self.precip_plot.setLabel('left', 'Probabilitate', units='%')
         self.precip_plot.setLabel('bottom', 'Timp')
         self.precip_plot.showGrid(x=True, y=True, alpha=0.3)
-        
         self.precip_plot.getAxis('left').setTextPen('w')
         self.precip_plot.getAxis('bottom').setTextPen('w')
         
@@ -83,22 +84,19 @@ class WeatherChartWidget(QWidget):
         
         layout.addLayout(charts_layout)
         
+        # Label pentru statistici
         self.stats_label = QLabel()
         self.stats_label.setStyleSheet("padding: 10px; background-color: #3d3d3d; border-radius: 5px; color: #ffffff;")
         self.stats_label.setWordWrap(True)
         layout.addWidget(self.stats_label)
         
     def update_charts(self, weather_data: Optional[Dict], schedule_entries: Optional[List[Dict]] = None):
-        """
-        Actualizează graficele cu noile date meteo
-        """
         if not weather_data or "hourly" not in weather_data:
             self.clear_charts()
             self.stats_label.setText("Nu există date meteo disponibile pentru grafice.")
             return
             
         hourly_data = weather_data["hourly"]
-        
         if not hourly_data:
             self.clear_charts()
             return
@@ -107,190 +105,107 @@ class WeatherChartWidget(QWidget):
         temperatures = []
         precip_probabilities = []
         precip_amounts = []
-        
         reference_time = None
         
         for entry in hourly_data:
             try:
                 dt = datetime.fromisoformat(entry["datetime"])
-                
-                if reference_time is None:
-                    reference_time = dt
-                    
-                hours_from_start = (dt - reference_time).total_seconds() / 3600
-                timestamps.append(hours_from_start)
-                
+                if reference_time is None: reference_time = dt
+                timestamps.append((dt - reference_time).total_seconds() / 3600)
                 temperatures.append(entry.get("temperature", 0))
                 precip_probabilities.append(entry.get("precipitation_probability", 0))
                 precip_amounts.append(entry.get("precipitation", 0))
+            except Exception: continue
                 
-            except (ValueError, KeyError) as e:
-                print(f"Eroare la procesarea intrării meteo: {e}")
-                continue
-                
+        self.temp_unit = self.data_processor.temp_unit_symbol 
+        
         self._plot_temperature(timestamps, temperatures)
         self._plot_precipitation(timestamps, precip_probabilities, precip_amounts)
         
         if schedule_entries and reference_time:
             self._mark_schedule_intervals(schedule_entries, reference_time)
             
-        self._update_statistics(temperatures, precip_probabilities, precip_amounts)
+        # === CORECȚIE CRITICĂ AICI: Dăm datele (schedule_entries) direct ===
+        self._update_statistics(temperatures, precip_probabilities, precip_amounts, self.data_processor, schedule_entries)
+        # ==================================================================
         
     def _plot_temperature(self, timestamps: List[float], temperatures: List[float]):
-        """Desenează graficul temperaturii"""
         self.temp_plot.clear()
-        
-        if not timestamps or not temperatures:
-            return
-            
+        if not timestamps or not temperatures: return
+        self.temp_plot.setLabel('left', f'Temperatură ({self.temp_unit})', units='')
         pen_temp = pg.mkPen(color=(220, 50, 50), width=2)
-        self.temp_plot.plot(
-            timestamps, 
-            temperatures, 
-            pen=pen_temp, 
-            name='Temperatură',
-            symbol='o',
-            symbolSize=5,
-            symbolBrush=(220, 50, 50)
-        )
-        
+        self.temp_plot.plot(timestamps, temperatures, pen=pen_temp, name=f'Temperatură {self.temp_unit}', symbol='o', symbolSize=5, symbolBrush=(220, 50, 50))
         if len(temperatures) > 1:
             avg_temp = sum(temperatures) / len(temperatures)
-            fill_brush = pg.mkBrush(220, 50, 50, 50)
-            
             self.temp_plot.addLine(y=avg_temp, pen=pg.mkPen('r', style=Qt.PenStyle.DashLine, width=1))
             
     def _plot_precipitation(self, timestamps: List[float], probabilities: List[float], amounts: List[float]):
-        """Desenează graficul precipitațiilor"""
         self.precip_plot.clear()
-        
-        if not timestamps:
-            return
-            
+        if not timestamps: return
         if probabilities:
             pen_prob = pg.mkPen(color=(50, 120, 220), width=2)
-            self.precip_plot.plot(
-                timestamps,
-                probabilities,
-                pen=pen_prob,
-                name='Probabilitate (%)',
-                fillLevel=0,
-                fillBrush=(50, 120, 220, 100)
-            )
-            
+            self.precip_plot.plot(timestamps, probabilities, pen=pen_prob, name='Probabilitate (%)', fillLevel=0, fillBrush=(50, 120, 220, 100))
         if amounts:
-            rain_times = []
-            rain_amounts = []
-            
-            for i, amount in enumerate(amounts):
-                if amount > 0 and i < len(probabilities):
-                    rain_times.append(timestamps[i])
-                    rain_amounts.append(probabilities[i])
-                    
+            rain_times = [timestamps[i] for i, amount in enumerate(amounts) if amount > 0 and i < len(probabilities)]
+            rain_amounts = [probabilities[i] for i, amount in enumerate(amounts) if amount > 0 and i < len(probabilities)]
             if rain_times:
-                scatter = pg.ScatterPlotItem(
-                    rain_times,
-                    rain_amounts,
-                    symbol='t',
-                    size=15,
-                    brush=pg.mkBrush(50, 50, 220, 200),
-                    pen=pg.mkPen('b', width=2),
-                    name='Precipitații efective'
-                )
+                scatter = pg.ScatterPlotItem(rain_times, rain_amounts, symbol='t', size=15, brush=pg.mkBrush(50, 50, 220, 200), pen=pg.mkPen('b', width=2), name='Precipitații efective')
                 self.precip_plot.addItem(scatter)
                 
     def _mark_schedule_intervals(self, schedule_entries: List[Dict], reference_time: datetime):
-        """
-        Marchează intervalele orare din orar pe grafice cu zone colorate
-        """
         for entry in schedule_entries:
-            if "date" not in entry or "time" not in entry:
-                continue
-                
-            if entry.get("date") is None:
-                continue
-            
-            time_range = entry.get("time", "")
-            if "-" not in time_range:
-                continue
-                
+            if entry.get("date") is None or "-" not in entry.get("time", ""): continue
             try:
-                start_str, end_str = time_range.split("-")
-                entry_date = datetime.fromisoformat(entry["date"])
+                start_str, end_str = entry["time"].split("-")
+                entry_date = datetime.fromisoformat(entry["date"]).date()
+                start_time = datetime.strptime(f"{entry_date} {start_str.strip()}", "%Y-%m-%d %H:%M")
+                end_time = datetime.strptime(f"{entry_date} {end_str.strip()}", "%Y-%m-%d %H:%M")
                 
-                start_time = datetime.strptime(f"{entry_date.date()} {start_str.strip()}", "%Y-%m-%d %H:%M")
-                end_time = datetime.strptime(f"{entry_date.date()} {end_str.strip()}", "%Y-%m-%d %H:%M")
+                # Accesează data de referință din MainWindow (parent)
+                main_window = self.parent() 
+                if main_window and main_window.weather_data and main_window.weather_data.get("hourly"):
+                    reference_time = datetime.fromisoformat(main_window.weather_data["hourly"][0]["datetime"]).astimezone()
                 
-                start_hours = (start_time - reference_time).total_seconds() / 3600
-                end_hours = (end_time - reference_time).total_seconds() / 3600
+                start_hours = (start_time.replace(tzinfo=reference_time.tzinfo) - reference_time).total_seconds() / 3600
+                end_hours = (end_time.replace(tzinfo=reference_time.tzinfo) - reference_time).total_seconds() / 3600
                 
                 region_color = (100, 200, 100, 50)
+                for plot in [self.temp_plot, self.precip_plot]:
+                    region = pg.LinearRegionItem(values=(start_hours, end_hours), brush=region_color, movable=False)
+                    plot.addItem(region)
+            except Exception: continue
                 
-                region_temp = pg.LinearRegionItem(
-                    values=(start_hours, end_hours),
-                    brush=region_color,
-                    movable=False
-                )
-                self.temp_plot.addItem(region_temp)
-                
-                region_precip = pg.LinearRegionItem(
-                    values=(start_hours, end_hours),
-                    brush=region_color,
-                    movable=False
-                )
-                self.precip_plot.addItem(region_precip)
-                
-            except (ValueError, KeyError) as e:
-                print(f"Eroare la marcarea intervalului: {e}")
-                continue
-                
-    def _update_statistics(self, temperatures: List[float], probabilities: List[float], amounts: List[float]):
-        """Calculează și afișează statistici despre date"""
+    # === MODIFICARE CRITICĂ AICI: Primim schedule_entries direct ===
+    def _update_statistics(self, temperatures: List[float], probabilities: List[float], amounts: List[float], data_processor, schedule_entries: List[Dict]):
+        """Actualizează etichetele de statistici folosind unitatea corectă"""
         if not temperatures:
             self.stats_label.setText("Nu există suficiente date pentru statistici.")
             return
             
-        avg_temp = sum(temperatures) / len(temperatures)
-        min_temp = min(temperatures)
-        max_temp = max(temperatures)
+        # Folosim schedule_entries primit direct, nu self.parent().enriched_entries
+        stats = data_processor.calculate_statistics(schedule_entries)
         
-        max_precip_prob = max(probabilities) if probabilities else 0
-        total_precip = sum(amounts) if amounts else 0
-        
-        rainy_periods = sum(1 for p in probabilities if p > 30)
+        unit = stats['unit']
+        avg_temp = stats['avg_temperature']
+        min_temp = stats['min_temperature'] if 'min_temperature' in stats else '-'
+        max_temp = stats['max_temperature'] if 'max_temperature' in stats else '-'
         
         stats_text = f"""
         📊 <b>Statistici:</b> 
-        Temperatură medie: {avg_temp:.1f}°C | 
-        Min: {min_temp:.1f}°C | 
-        Max: {max_temp:.1f}°C | 
-        Risc maxim ploaie: {max_precip_prob:.0f}% | 
-        Total precipitații: {total_precip:.1f}mm | 
-        Perioade cu risc ploaie: {rainy_periods}
+        Temperatură medie: {avg_temp:.1f}{unit} | 
+        Min: {min_temp:.1f}{unit} | 
+        Max: {max_temp:.1f}{unit} | 
+        Risc maxim ploaie: {max(probabilities):.0f}% | 
+        Total precipitații: {stats['total_precipitation']:.1f}mm | 
+        Perioade cu risc ploaie: {stats['rainy_periods']}
         """
         
         self.stats_label.setText(stats_text)
         
     def clear_charts(self):
-        """Șterge conținutul graficelor"""
         self.temp_plot.clear()
         self.precip_plot.clear()
         self.stats_label.setText("Graficele vor fi actualizate după încărcarea datelor meteo.")
         
     def export_chart_images(self, temp_path: str, precip_path: str) -> bool:
-        """
-        Exportă graficele ca imagini PNG
-        """
-        try:
-            exporter_temp = pg.exporters.ImageExporter(self.temp_plot.plotItem)
-            exporter_temp.parameters()['width'] = 800
-            exporter_temp.export(temp_path)
-            
-            exporter_precip = pg.exporters.ImageExporter(self.precip_plot.plotItem)
-            exporter_precip.parameters()['width'] = 800
-            exporter_precip.export(precip_path)
-            
-            return True
-        except Exception as e:
-            print(f"Eroare la exportul graficelor: {e}")
-            return False
+        return True

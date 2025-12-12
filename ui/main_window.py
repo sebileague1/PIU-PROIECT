@@ -40,10 +40,8 @@ class MainWindow(QMainWindow):
         self.weather_service.weather_data_ready.connect(self.on_weather_data_received)
         self.weather_service.weather_error.connect(self.on_weather_error)
         
-        # --- PAS CRITIC: Încărcăm setările salvate ÎNAINTE de a afișa datele ---
         self.load_initial_settings()
         
-        # Încărcăm cache-ul
         cached = self.weather_service.load_weather_from_file()
         if cached:
             self.weather_data = cached
@@ -57,7 +55,6 @@ class MainWindow(QMainWindow):
                 with open(settings_path, 'r', encoding='utf-8') as f:
                     settings = json.load(f)
                     unit = settings.get("temperature_unit", "celsius")
-                    # Sincronizăm serviciul și procesorul
                     self.weather_service.set_temperature_unit(unit)
                     self.data_processor.set_temperature_unit(unit)
                     self.weather_service.set_location(settings.get("location_name", "București"))
@@ -93,7 +90,9 @@ class MainWindow(QMainWindow):
         self.create_table()
         layout.addWidget(self.table, 3)
         
-        self.weather_chart = WeatherChartWidget(self)
+        # TRIMITERE SIGURĂ A data_processor
+        self.weather_chart = WeatherChartWidget(self.data_processor, self)
+        
         layout.addWidget(self.weather_chart, 2)
 
     def create_table(self):
@@ -104,30 +103,45 @@ class MainWindow(QMainWindow):
 
     def load_schedule(self):
         path, _ = QFileDialog.getOpenFileName(self, "Deschide orar", "", "JSON (*.json);;CSV (*.csv)")
-        if path:
+        if not path: return
+        try:
             res = self.schedule_manager.load_from_json(path) if path.endswith('.json') else self.schedule_manager.load_from_csv(path)
             if res["status"] == "success":
                 self.schedule_data = {"schedule": res["schedule"]}
                 self.status_label.setText(f"Orar încărcat ({len(res['schedule'])} rânduri).")
+                
                 if self.weather_data: self.update_view()
+                
+        except Exception as e:
+            QMessageBox.critical(self, "Eroare", f"Eroare la încărcarea orarului: {str(e)}")
 
     def refresh_weather(self):
-        if self.schedule_data:
-            self.status_label.setText("Actualizare meteo...")
-            self.weather_service.fetch_weather_data(7)
+        if not self.schedule_data and not self.weather_data:
+             QMessageBox.warning(self, "Atenție", "Încarcă orarul sau datele meteo pentru a începe.")
+             return
+        self.status_label.setText("Actualizare meteo...")
+        self.refresh_btn.setEnabled(False)
+        self.weather_service.fetch_weather_data(7)
 
     def on_weather_data_received(self, data):
         self.weather_data = data
         self.update_view()
         self.status_label.setText("Date meteo actualizate.")
+        self.refresh_btn.setEnabled(True)
 
     def on_weather_error(self, err):
         QMessageBox.warning(self, "Eroare Meteo", err)
+        self.status_label.setText(f"Eroare: {err}")
+        self.refresh_btn.setEnabled(True)
 
     def update_view(self):
+        """Metoda unificată pentru actualizarea UI-ului"""
         if not self.schedule_data or not self.weather_data: return
+        
+        # 1. Procesează datele
         self.enriched_entries = self.data_processor.merge_schedule_with_weather(self.schedule_data["schedule"], self.weather_data)
         
+        # 2. Actualizează tabelul
         self.table.setRowCount(len(self.enriched_entries))
         for row, entry in enumerate(self.enriched_entries):
             self.table.setItem(row, 0, QTableWidgetItem(entry.get('day', '')))
@@ -140,7 +154,10 @@ class MainWindow(QMainWindow):
                 self.table.setItem(row, 4, QTableWidgetItem(fmt["conditions"]))
                 self.table.setItem(row, 5, QTableWidgetItem(fmt["precipitation"]))
                 self.table.setItem(row, 6, QTableWidgetItem(fmt["wind"]))
+            else:
+                 for col in range(3, 7): self.table.setItem(row, col, QTableWidgetItem("-"))
         
+        # 3. Actualizează graficele (trimite lista de intrări direct, NU prin self.parent())
         self.weather_chart.update_charts(self.weather_data, self.enriched_entries)
 
     def apply_theme(self):

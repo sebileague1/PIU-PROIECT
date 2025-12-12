@@ -118,11 +118,24 @@ class DataProcessor:
                 if temp is not None: temperatures.append(temp)
         
         if not temperatures:
-            return {"avg_temperature": None, "rainy_periods": 0, "total_precipitation": 0.0}
+            return {
+                "avg_temperature": None, 
+                "min_temperature": None,
+                "max_temperature": None,
+                "rainy_periods": 0, 
+                "total_precipitation": 0.0,
+                # Adăugat pentru a returna simbolul unității
+                "unit": self.temp_unit_symbol 
+            }
+        
         return {
             "avg_temperature": sum(temperatures) / len(temperatures),
+            "min_temperature": min(temperatures),
+            "max_temperature": max(temperatures),
             "rainy_periods": len([e for e in enriched_entries if e.get('weather') and e['weather'].get('precipitation_probability', 0) > 30]),
-            "total_precipitation": sum([e.get('weather', {}).get('precipitation', 0) for e in enriched_entries if e.get('weather')])
+            "total_precipitation": sum([e.get('weather', {}).get('precipitation', 0) for e in enriched_entries if e.get('weather')]),
+            # Adăugat pentru a returna simbolul unității
+            "unit": self.temp_unit_symbol
         }
 
     def detect_rain_conditions(self, weather_data: Dict) -> tuple:
