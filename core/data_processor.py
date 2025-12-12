@@ -1,3 +1,8 @@
+"""
+Procesează datele de la WeatherService și le combină cu orarul.
+Responsabil: Danalache Sebastian
+"""
+
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 import json
@@ -8,6 +13,7 @@ class DataProcessor:
             "Luni": 0, "Marți": 1, "Miercuri": 2, "Joi": 3, "Vineri": 4, 
             "Sâmbătă": 5, "Duminică": 6
         }
+        # Valoare implicită
         self.temp_unit_symbol = "°C" 
 
     def set_temperature_unit(self, unit: str):
@@ -38,7 +44,6 @@ class DataProcessor:
 
         for entry in schedule_entries:
             enriched = entry.copy()
-            
             day_name = entry.get("day")
             time_range = entry.get("time")
 
@@ -72,13 +77,10 @@ class DataProcessor:
                         hourly_dt = datetime.fromisoformat(hourly["datetime"]).astimezone()
                     except ValueError:
                         continue
-                        
                     diff = abs(target_datetime - hourly_dt)
-                    
                     if diff < min_diff:
                         min_diff = diff
                         closest_forecast = hourly
-                        
                     if hourly_dt > target_datetime and diff > min_diff:
                         break
 
@@ -88,21 +90,17 @@ class DataProcessor:
                 enriched["weather"] = None
 
             enriched_entries.append(enriched)
-
         return enriched_entries
 
     def format_weather_for_table(self, weather_data: Dict) -> Dict:
-        """
-        Formatează datele meteo pentru afișarea în tabel
-        """
+        """Formatează datele meteo pentru afișarea în tabel"""
         temp = weather_data.get("temperature")
         precip_prob = weather_data.get("precipitation_probability")
-        precip_amount = weather_data.get("precipitation")
         conditions = weather_data.get("weather_description")
         wind_speed = weather_data.get("wind_speed")
         
+        # UTILIZARE SIMBOL CORECT
         temperature = f"{temp:.1f}{self.temp_unit_symbol}" if temp is not None else "-"
-        
         precipitation = f"{precip_prob:.0f}%" if precip_prob is not None else "-"
         conditions_text = conditions if conditions else "-"
         wind = f"{wind_speed:.1f} km/h" if wind_speed is not None else "-"
@@ -111,43 +109,23 @@ class DataProcessor:
             "temperature": temperature,
             "conditions": conditions_text,
             "precipitation": precipitation,
-            "wind": wind,
-            "precip_amount": precip_amount,
-            "precip_prob": precip_prob
+            "wind": wind
         }
 
     def calculate_statistics(self, enriched_entries: List[Dict]) -> Dict:
-        """
-        Calculează statistici (medie, min, max, risc de ploaie) pe baza datelor meteo
-        """
         temperatures = []
         rainy_periods = 0
         total_precipitation = 0.0
-        
         for entry in enriched_entries:
             weather = entry.get("weather")
             if weather:
                 temp = weather.get("temperature")
-                precip_prob = weather.get("precipitation_probability", 0)
-                precip_amount = weather.get("precipitation", 0.0)
-                
-                if temp is not None:
-                    temperatures.append(temp)
-                
-                if precip_prob > 30 or precip_amount > 0:
-                    rainy_periods += 1
-                
-                total_precipitation += precip_amount
-                
+                if temp is not None: temperatures.append(temp)
+                if weather.get("precipitation_probability", 0) > 30: rainy_periods += 1
+                total_precipitation += weather.get("precipitation", 0.0)
+        
         if not temperatures:
-            return {
-                "avg_temperature": None,
-                "min_temperature": None,
-                "max_temperature": None,
-                "rainy_periods": 0,
-                "total_precipitation": 0.0
-            }
-
+            return {"avg_temperature": None, "min_temperature": None, "max_temperature": None, "rainy_periods": 0, "total_precipitation": 0.0}
         return {
             "avg_temperature": sum(temperatures) / len(temperatures),
             "min_temperature": min(temperatures),
@@ -157,23 +135,14 @@ class DataProcessor:
         }
 
     def detect_rain_conditions(self, weather_data: Dict) -> tuple:
-        """
-        Detectează condițiile de ploaie pentru colorarea rândurilor
-        Returns: (bool is_rainy, str severity)
-        """
-        precip_prob = weather_data.get("precipitation_probability", 0)
-        precip_amount = weather_data.get("precipitation", 0.0)
-        
-        if precip_prob > 20 or precip_amount > 0.1:
-            if precip_prob >= 70 or precip_amount >= 1.0:
-                return (True, "heavy")
-            elif precip_prob >= 40 or precip_amount >= 0.3:
-                return (True, "moderate")
-            else:
-                return (True, "light")
+        prob = weather_data.get("precipitation_probability", 0)
+        amt = weather_data.get("precipitation", 0.0)
+        if prob > 20 or amt > 0.1:
+            if prob >= 70 or amt >= 1.0: return (True, "heavy")
+            elif prob >= 40 or amt >= 0.3: return (True, "moderate")
+            return (True, "light")
         return (False, "none")
-        
+
     def get_entries_for_tomorrow(self, enriched_entries: List[Dict]) -> List[Dict]:
-        """Filtrează intrările pentru ziua de mâine pentru alerte"""
         tomorrow = (datetime.now() + timedelta(days=1)).date().isoformat()
         return [entry for entry in enriched_entries if entry.get("date") == tomorrow]
