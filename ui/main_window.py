@@ -1,8 +1,3 @@
-"""
-UI & Interfață principală WeatherScheduler
-Responsabil: Danalache Emanuel
-"""
-
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                              QPushButton, QTableWidget, QTableWidgetItem, 
                              QLabel, QFileDialog, QMessageBox, QHeaderView, QInputDialog)
@@ -11,7 +6,6 @@ from PyQt6.QtGui import QColor
 import json
 from pathlib import Path
 
-# Import componente create de ceilalți membri
 from core.schedule_manager import ScheduleManager
 from core.weather_service import WeatherService
 from core.data_processor import DataProcessor
@@ -32,7 +26,6 @@ class MainWindow(QMainWindow):
         self.weather_data = None
         self.enriched_entries = []
         
-        # === INIȚIALIZARE COMPONENTE ===
         
         self.schedule_manager = ScheduleManager()
         
@@ -46,7 +39,7 @@ class MainWindow(QMainWindow):
         self.export_manager = ExportManager(self)
         
         self.init_ui()
-        self.apply_theme() # Aplicăm tema întunecată o singură dată
+        self.apply_theme()
         
         cached_weather = self.weather_service.load_weather_from_file()
         if cached_weather:
@@ -64,7 +57,6 @@ class MainWindow(QMainWindow):
         main_layout = QVBoxLayout()
         central_widget.setLayout(main_layout)
         
-        # ==== SECȚIUNEA HEADER ====
         header_layout = QHBoxLayout()
         
         title_label = QLabel("📅 WeatherScheduler")
@@ -75,7 +67,7 @@ class MainWindow(QMainWindow):
         
         main_layout.addLayout(header_layout)
         
-        # ==== SECȚIUNEA CONTROALE ====
+
         controls_layout = QHBoxLayout()
         
         self.load_schedule_button = QPushButton("📂 Încarcă Orar")
@@ -108,16 +100,13 @@ class MainWindow(QMainWindow):
         
         main_layout.addLayout(controls_layout)
         
-        # ==== LABEL STATUS ====
         self.status_label = QLabel("✅ Bine ai venit! Încarcă un orar pentru a începe.")
         self.status_label.setStyleSheet("padding: 10px; font-size: 14px;")
         main_layout.addWidget(self.status_label)
         
-        # ==== TABELUL PRINCIPAL ====
         self.create_schedule_table()
         main_layout.addWidget(self.table, 3) 
         
-        # ==== WIDGET GRAFICE (Sebastian M.) ====
         self.weather_chart = WeatherChartWidget(self)
         main_layout.addWidget(self.weather_chart, 2)
         
@@ -399,7 +388,6 @@ class MainWindow(QMainWindow):
         
         self.weather_service.set_temperature_unit(unit)
         
-        # CORECȚIE: Setăm unitatea și în DataProcessor pentru formatare
         self.data_processor.set_temperature_unit(unit)
         
         self.weather_service.set_location(settings.get("location_name", "București"))
@@ -412,7 +400,6 @@ class MainWindow(QMainWindow):
         else:
             self.notification_manager.stop_automatic_checks()
         
-        # Invalidează cache-ul și forțează o reîmprospătare cu noua unitate
         self.weather_service.cached_weather = None
         self.refresh_weather()
         
@@ -486,7 +473,7 @@ class MainWindow(QMainWindow):
                 self.weather_data,
                 statistics
             )
-        else:  # CSV
+        else: 
             success = self.export_manager.export_to_csv(export_entries)
         
         if success:

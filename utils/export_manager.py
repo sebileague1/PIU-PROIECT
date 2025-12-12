@@ -1,9 +1,3 @@
-"""
-Funcționalitate de export în format PDF și CSV
-Responsabil: Moscalu Sebastian
-"""
-
-# CORECȚIE CRITICĂ AICI: Importăm QPageSize pentru a rezolva eroarea PDF în Qt6
 from PyQt6.QtPrintSupport import QPrinter, QPrintDialog
 from PyQt6.QtGui import QPainter, QFont, QColor, QPen, QPageSize
 from PyQt6.QtCore import QRect, Qt, QDate
@@ -41,16 +35,11 @@ class ExportManager:
             return False
             
         try:
-            # Creăm printer-ul pentru PDF
             printer = QPrinter(QPrinter.PrinterMode.HighResolution)
             printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
             printer.setOutputFileName(file_path)
             
-            # === CORECȚIA CRITICĂ AICI ===
-            # Folosim QPageSize(QPageSize.PageSizeId.A4) în loc de QPrinter.PageSize.A4,
-            # care rezolvă eroarea de compatibilitate în PyQt6
             printer.setPageSize(QPageSize(QPageSize.PageSizeId.A4))
-            # =============================
             
             printer.setPageMargins(15, 15, 15, 15, QPrinter.Unit.Millimeter)
             
@@ -98,8 +87,7 @@ class ExportManager:
         page_height = int(page_rect.height())
         
         y_position = 50 
-        
-        # === HEADER ===
+    
         font_title = QFont("Arial", 24, QFont.Weight.Bold)
         painter.setFont(font_title)
         painter.setPen(QColor(0, 51, 102))
@@ -120,12 +108,10 @@ class ExportManager:
         painter.drawLine(50, y_position, page_width - 50, y_position)
         y_position += 40
         
-        # === STATISTICI (dacă sunt disponibile) ===
         if statistics:
             y_position = self._draw_statistics_section(painter, statistics, y_position, page_width)
             y_position += 30
             
-        # === TABELUL CU DATE ===
         font_normal = QFont("Arial", 10)
         painter.setFont(font_normal)
         
@@ -165,7 +151,6 @@ class ExportManager:
             
             weather = entry.get("weather")
             if weather:
-                # Folosim °C aici pentru export, deoarece unitatea de conversie este deja făcută de DataProcessor
                 temp = f"{weather.get('temperature', '-')}°C" if weather.get('temperature') else "-"
                 conditions = weather.get("weather_description", "-")
                 precip_prob = weather.get("precipitation_probability", 0)
@@ -184,7 +169,6 @@ class ExportManager:
             
             y_position += row_height
             
-        # === FOOTER ===
         y_position = page_height - 40
         painter.setPen(QColor(150, 150, 150))
         font_footer = QFont("Arial", 8)
