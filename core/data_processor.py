@@ -13,20 +13,17 @@ class DataProcessor:
             "Luni": 0, "Marți": 1, "Miercuri": 2, "Joi": 3, "Vineri": 4, 
             "Sâmbătă": 5, "Duminică": 6
         }
-        # Valoare implicită
+        # Valoare implicită pentru formatare
         self.temp_unit_symbol = "°C" 
 
     def set_temperature_unit(self, unit: str):
-        """Setează simbolul unității de temperatură pentru formatare."""
+        """Setează simbolul unității de temperatură pentru formatarea în tabel."""
         if unit.lower() == "fahrenheit":
             self.temp_unit_symbol = "°F"
         else:
             self.temp_unit_symbol = "°C"
 
     def merge_schedule_with_weather(self, schedule_entries: List[Dict], weather_data: Dict) -> List[Dict]:
-        """
-        Combină intrările din orar cu datele meteo cele mai relevante
-        """
         if not weather_data or "hourly" not in weather_data:
             return schedule_entries
 
@@ -93,13 +90,13 @@ class DataProcessor:
         return enriched_entries
 
     def format_weather_for_table(self, weather_data: Dict) -> Dict:
-        """Formatează datele meteo pentru afișarea în tabel"""
+        """Formatează datele folosind simbolul unității setat."""
         temp = weather_data.get("temperature")
         precip_prob = weather_data.get("precipitation_probability")
         conditions = weather_data.get("weather_description")
         wind_speed = weather_data.get("wind_speed")
         
-        # UTILIZARE SIMBOL CORECT
+        # UTILIZARE SIMBOL CORECT (°C sau °F)
         temperature = f"{temp:.1f}{self.temp_unit_symbol}" if temp is not None else "-"
         precipitation = f"{precip_prob:.0f}%" if precip_prob is not None else "-"
         conditions_text = conditions if conditions else "-"
@@ -114,33 +111,25 @@ class DataProcessor:
 
     def calculate_statistics(self, enriched_entries: List[Dict]) -> Dict:
         temperatures = []
-        rainy_periods = 0
-        total_precipitation = 0.0
         for entry in enriched_entries:
             weather = entry.get("weather")
             if weather:
                 temp = weather.get("temperature")
                 if temp is not None: temperatures.append(temp)
-                if weather.get("precipitation_probability", 0) > 30: rainy_periods += 1
-                total_precipitation += weather.get("precipitation", 0.0)
         
         if not temperatures:
-            return {"avg_temperature": None, "min_temperature": None, "max_temperature": None, "rainy_periods": 0, "total_precipitation": 0.0}
+            return {"avg_temperature": None, "rainy_periods": 0, "total_precipitation": 0.0}
         return {
             "avg_temperature": sum(temperatures) / len(temperatures),
-            "min_temperature": min(temperatures),
-            "max_temperature": max(temperatures),
-            "rainy_periods": rainy_periods,
-            "total_precipitation": total_precipitation
+            "rainy_periods": len([e for e in enriched_entries if e.get('weather') and e['weather'].get('precipitation_probability', 0) > 30]),
+            "total_precipitation": sum([e.get('weather', {}).get('precipitation', 0) for e in enriched_entries if e.get('weather')])
         }
 
     def detect_rain_conditions(self, weather_data: Dict) -> tuple:
         prob = weather_data.get("precipitation_probability", 0)
         amt = weather_data.get("precipitation", 0.0)
         if prob > 20 or amt > 0.1:
-            if prob >= 70 or amt >= 1.0: return (True, "heavy")
-            elif prob >= 40 or amt >= 0.3: return (True, "moderate")
-            return (True, "light")
+            return (True, "heavy" if prob > 70 else "moderate")
         return (False, "none")
 
     def get_entries_for_tomorrow(self, enriched_entries: List[Dict]) -> List[Dict]:
