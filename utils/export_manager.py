@@ -1,5 +1,11 @@
+"""
+Funcționalitate de export în format PDF și CSV
+Responsabil: Moscalu Sebastian
+"""
+
+# CORECȚIE CRITICĂ AICI: Importăm QPageSize pentru a rezolva eroarea PDF în Qt6
 from PyQt6.QtPrintSupport import QPrinter, QPrintDialog
-from PyQt6.QtGui import QPainter, QFont, QColor, QPen, QPageSize 
+from PyQt6.QtGui import QPainter, QFont, QColor, QPen, QPageSize
 from PyQt6.QtCore import QRect, Qt, QDate
 from PyQt6.QtWidgets import QFileDialog, QMessageBox, QWidget
 import csv
@@ -8,8 +14,8 @@ from typing import List, Dict, Optional
 
 class ExportManager:
     """
-    Gestioneaza exportul datelor aplicatiei in formate PDF si CSV
-    Foloseste Qt Print Framework pentru PDF (fara dependente externe)
+    Gestionează exportul datelor aplicației în formate PDF și CSV
+    Folosește Qt Print Framework pentru PDF (fără dependențe externe)
     """
     
     def __init__(self, parent_widget: Optional[QWidget] = None):
@@ -22,31 +28,36 @@ class ExportManager:
         statistics: Optional[Dict] = None
     ) -> bool:
         """
-        Exporta datele in format PDF folosind Qt Print Framework
+        Exportă datele în format PDF folosind Qt Print Framework
         """
         file_path, _ = QFileDialog.getSaveFileName(
             self.parent,
-            "Salveaza raportul PDF",
+            "Salvează raportul PDF",
             f"WeatherScheduler_Raport_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-            "Fisiere PDF (*.pdf)"
+            "Fișiere PDF (*.pdf)"
         )
         
         if not file_path:
             return False
             
         try:
+            # Creăm printer-ul pentru PDF
             printer = QPrinter(QPrinter.PrinterMode.HighResolution)
             printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
             printer.setOutputFileName(file_path)
             
+            # === CORECȚIA CRITICĂ AICI ===
+            # Folosim QPageSize(QPageSize.PageSizeId.A4) în loc de QPrinter.PageSize.A4,
+            # care rezolvă eroarea de compatibilitate în PyQt6
             printer.setPageSize(QPageSize(QPageSize.PageSizeId.A4))
+            # =============================
             
             printer.setPageMargins(15, 15, 15, 15, QPrinter.Unit.Millimeter)
             
             painter = QPainter()
             
             if not painter.begin(printer):
-                raise Exception("Nu s-a putut initializa painter-ul pentru PDF")
+                raise Exception("Nu s-a putut inițializa painter-ul pentru PDF")
                 
             self._draw_pdf_content(painter, printer, schedule_data, weather_data, statistics)
             
@@ -66,7 +77,7 @@ class ExportManager:
                 QMessageBox.critical(
                     self.parent,
                     "Eroare export PDF",
-                    f"Nu s-a putut crea fisierul PDF:\n{str(e)}"
+                    f"Nu s-a putut crea fișierul PDF:\n{str(e)}"
                 )
             print(f"Eroare la export PDF: {e}")
             return False
@@ -80,7 +91,7 @@ class ExportManager:
         statistics: Optional[Dict]
     ):
         """
-        Deseneaza continutul complet al PDF-ului
+        Desenează conținutul complet al PDF-ului
         """
         page_rect = printer.pageRect(QPrinter.Unit.Point)
         page_width = int(page_rect.width())
@@ -88,6 +99,7 @@ class ExportManager:
         
         y_position = 50 
         
+        # === HEADER ===
         font_title = QFont("Arial", 24, QFont.Weight.Bold)
         painter.setFont(font_title)
         painter.setPen(QColor(0, 51, 102))
@@ -108,10 +120,12 @@ class ExportManager:
         painter.drawLine(50, y_position, page_width - 50, y_position)
         y_position += 40
         
+        # === STATISTICI (dacă sunt disponibile) ===
         if statistics:
             y_position = self._draw_statistics_section(painter, statistics, y_position, page_width)
             y_position += 30
             
+        # === TABELUL CU DATE ===
         font_normal = QFont("Arial", 10)
         painter.setFont(font_normal)
         
@@ -123,7 +137,7 @@ class ExportManager:
         painter.drawText(130, y_position + 20, "Interval")
         painter.drawText(230, y_position + 20, "Materie")
         painter.drawText(360, y_position + 20, "Temp.")
-        painter.drawText(430, y_position + 20, "Conditii")
+        painter.drawText(430, y_position + 20, "Condiții")
         painter.drawText(520, y_position + 20, "Precip.")
         
         y_position += 35
@@ -151,6 +165,7 @@ class ExportManager:
             
             weather = entry.get("weather")
             if weather:
+                # Folosim °C aici pentru export, deoarece unitatea de conversie este deja făcută de DataProcessor
                 temp = f"{weather.get('temperature', '-')}°C" if weather.get('temperature') else "-"
                 conditions = weather.get("weather_description", "-")
                 precip_prob = weather.get("precipitation_probability", 0)
@@ -169,12 +184,13 @@ class ExportManager:
             
             y_position += row_height
             
+        # === FOOTER ===
         y_position = page_height - 40
         painter.setPen(QColor(150, 150, 150))
         font_footer = QFont("Arial", 8)
         painter.setFont(font_footer)
         
-        footer_text = "WeatherScheduler - PIU Project 2025"
+        footer_text = "Generat de WeatherScheduler - PIU Project 2025"
         painter.drawText(50, y_position, footer_text)
         
     def _draw_statistics_section(
@@ -185,7 +201,7 @@ class ExportManager:
         page_width: int
     ) -> int:
         """
-        Deseneaza sectiunea cu statistici in PDF
+        Desenează secțiunea cu statistici în PDF
         """
         font_section = QFont("Arial", 14, QFont.Weight.Bold)
         painter.setFont(font_section)
@@ -207,30 +223,30 @@ class ExportManager:
         
         avg_temp = statistics.get("avg_temperature")
         if avg_temp is not None:
-            painter.drawText(70, y_offset, f"Temperatura medie: {avg_temp:.1f}°C")
+            painter.drawText(70, y_offset, f"Temperatură medie: {avg_temp:.1f}°C")
         y_offset += 20
         
         min_temp = statistics.get("min_temperature")
         max_temp = statistics.get("max_temperature")
         if min_temp is not None and max_temp is not None:
-            painter.drawText(70, y_offset, f"Interval temperatura: {min_temp:.1f}°C - {max_temp:.1f}°C")
+            painter.drawText(70, y_offset, f"Interval temperatură: {min_temp:.1f}°C - {max_temp:.1f}°C")
         y_offset += 20
         
         rainy_periods = statistics.get("rainy_periods", 0)
         total_precip = statistics.get("total_precipitation", 0)
-        painter.drawText(70, y_offset, f"Perioade cu ploaie: {rainy_periods} | Total precipitatii: {total_precip:.1f}mm")
+        painter.drawText(70, y_offset, f"Perioade cu ploaie: {rainy_periods} | Total precipitații: {total_precip:.1f}mm")
         
         return y_position + stats_box_height
         
     def export_to_csv(self, schedule_data: List[Dict]) -> bool:
         """
-        Exporta datele în format CSV
+        Exportă datele în format CSV
         """
         file_path, _ = QFileDialog.getSaveFileName(
             self.parent,
-            "Salveaza raportul CSV",
+            "Salvează raportul CSV",
             f"WeatherScheduler_Raport_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-            "Fisiere CSV (*.csv)"
+            "Fișiere CSV (*.csv)"
         )
         
         if not file_path:
@@ -277,7 +293,7 @@ class ExportManager:
             if self.parent:
                 QMessageBox.information(
                     self.parent,
-                    "Export reusit",
+                    "Export reușit",
                     f"Raportul CSV a fost salvat cu succes:\n{file_path}"
                 )
                 
@@ -288,7 +304,7 @@ class ExportManager:
                 QMessageBox.critical(
                     self.parent,
                     "Eroare export CSV",
-                    f"Nu s-a putut crea fisierul CSV:\n{str(e)}"
+                    f"Nu s-a putut crea fișierul CSV:\n{str(e)}"
                 )
             print(f"Eroare la export CSV: {e}")
             return False
@@ -300,7 +316,7 @@ class ExportManager:
         printer = QPrinter(QPrinter.PrinterMode.HighResolution)
         
         dialog = QPrintDialog(printer, self.parent)
-        dialog.setWindowTitle("Printeaza raportul")
+        dialog.setWindowTitle("Printează raportul")
         
         if dialog.exec() == QPrintDialog.DialogCode.Accepted:
             painter = QPainter()
