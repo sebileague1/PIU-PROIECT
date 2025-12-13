@@ -5,7 +5,6 @@ Responsabil: Moscalu Sebastian
 
 from PyQt6.QtPrintSupport import QPrinter, QPrintDialog
 from PyQt6.QtGui import QPainter, QFont, QColor, QPen, QPageSize, QPageLayout
-# CORECȚIE IMPORT: QMarginsF este în QtCore în versiunile moderne
 from PyQt6.QtCore import QRect, Qt, QMarginsF
 from PyQt6.QtWidgets import QFileDialog, QMessageBox, QWidget
 import csv
@@ -106,7 +105,7 @@ class ExportManager:
             "INTERVAL": 150,
             "ACTIVITATE": 280,
             "TEMP": 430,
-            "CONDITII": 520 # Ajustat pentru Condiții mai lungi
+            "CONDITII": 520
         }
         
         # Header tabel
@@ -140,16 +139,15 @@ class ExportManager:
             ora = str(entry.get('time', '-'))
             materie = str(entry.get('subject', '-'))[:25]
 
-            # --- CORECȚIE ROBUSTETE DATĂ ---
+            # --- CORECȚIE CRITICĂ AICI: Inițializăm datele meteo ---
+            temp_value = None
+            cond_text = '-'
+            
             weather = entry.get('weather')
             
             if weather:
                 temp_value = weather.get('temperature')
                 cond_text = weather.get('weather_description', '-')
-            else:
-                # Setăm valori sigure dacă lipsește informația meteo
-                temp_value = None
-                cond_text = '-'
             
             # Formatarea temperaturii (folosind valoarea numerică + simbolul corect)
             temp_text = f"{temp_value:.1f}{unit_symbol}" if temp_value is not None else "-" 
