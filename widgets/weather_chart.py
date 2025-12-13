@@ -122,19 +122,29 @@ class WeatherChartWidget(QWidget):
         self._plot_temperature(timestamps, temperatures)
         self._plot_precipitation(timestamps, precip_probabilities, precip_amounts)
         
-        if schedule_entries and reference_time:
-            self._mark_schedule_intervals(schedule_entries, reference_time)
+        # Transmitem weather_data pentru a putea calcula referința orară corect
+        if schedule_entries and weather_data:
+            self._mark_schedule_intervals(schedule_entries, weather_data)
             
-        # === CORECȚIE CRITICĂ AICI: Dăm datele (schedule_entries) direct ===
         self._update_statistics(temperatures, precip_probabilities, precip_amounts, self.data_processor, schedule_entries)
-        # ==================================================================
         
     def _plot_temperature(self, timestamps: List[float], temperatures: List[float]):
         self.temp_plot.clear()
         if not timestamps or not temperatures: return
+            
         self.temp_plot.setLabel('left', f'Temperatură ({self.temp_unit})', units='')
+        
         pen_temp = pg.mkPen(color=(220, 50, 50), width=2)
-        self.temp_plot.plot(timestamps, temperatures, pen=pen_temp, name=f'Temperatură {self.temp_unit}', symbol='o', symbolSize=5, symbolBrush=(220, 50, 50))
+        self.temp_plot.plot(
+            timestamps, 
+            temperatures, 
+            pen=pen_temp, 
+            name=f'Temperatură {self.temp_unit}',
+            symbol='o',
+            symbolSize=5,
+            symbolBrush=(220, 50, 50)
+        )
+        
         if len(temperatures) > 1:
             avg_temp = sum(temperatures) / len(temperatures)
             self.temp_plot.addLine(y=avg_temp, pen=pg.mkPen('r', style=Qt.PenStyle.DashLine, width=1))
@@ -152,7 +162,18 @@ class WeatherChartWidget(QWidget):
                 scatter = pg.ScatterPlotItem(rain_times, rain_amounts, symbol='t', size=15, brush=pg.mkBrush(50, 50, 220, 200), pen=pg.mkPen('b', width=2), name='Precipitații efective')
                 self.precip_plot.addItem(scatter)
                 
-    def _mark_schedule_intervals(self, schedule_entries: List[Dict], reference_time: datetime):
+    # === MODIFICARE ÎN SEMNĂTURĂ: Primim weather_data direct ===
+    def _mark_schedule_intervals(self, schedule_entries: List[Dict], weather_data: Dict):
+        
+        if not weather_data or not weather_data.get("hourly"):
+            return
+            
+        try:
+            # Calculăm timpul de referință din datele primite de la API
+            reference_time = datetime.fromisoformat(weather_data["hourly"][0]["datetime"]).astimezone()
+        except Exception:
+            return
+
         for entry in schedule_entries:
             if entry.get("date") is None or "-" not in entry.get("time", ""): continue
             try:
@@ -161,11 +182,7 @@ class WeatherChartWidget(QWidget):
                 start_time = datetime.strptime(f"{entry_date} {start_str.strip()}", "%Y-%m-%d %H:%M")
                 end_time = datetime.strptime(f"{entry_date} {end_str.strip()}", "%Y-%m-%d %H:%M")
                 
-                # Accesează data de referință din MainWindow (parent)
-                main_window = self.parent() 
-                if main_window and main_window.weather_data and main_window.weather_data.get("hourly"):
-                    reference_time = datetime.fromisoformat(main_window.weather_data["hourly"][0]["datetime"]).astimezone()
-                
+                # Asigurăm același fus orar
                 start_hours = (start_time.replace(tzinfo=reference_time.tzinfo) - reference_time).total_seconds() / 3600
                 end_hours = (end_time.replace(tzinfo=reference_time.tzinfo) - reference_time).total_seconds() / 3600
                 
@@ -175,14 +192,14 @@ class WeatherChartWidget(QWidget):
                     plot.addItem(region)
             except Exception: continue
                 
-    # === MODIFICARE CRITICĂ AICI: Primim schedule_entries direct ===
+    # === MODIFICARE ÎN SEMNĂTURĂ: Ștergem referințele la main_window ===
     def _update_statistics(self, temperatures: List[float], probabilities: List[float], amounts: List[float], data_processor, schedule_entries: List[Dict]):
         """Actualizează etichetele de statistici folosind unitatea corectă"""
         if not temperatures:
             self.stats_label.setText("Nu există suficiente date pentru statistici.")
             return
             
-        # Folosim schedule_entries primit direct, nu self.parent().enriched_entries
+        # Folosim schedule_entries primit direct
         stats = data_processor.calculate_statistics(schedule_entries)
         
         unit = stats['unit']

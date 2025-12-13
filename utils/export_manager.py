@@ -5,6 +5,7 @@ Responsabil: Moscalu Sebastian
 
 from PyQt6.QtPrintSupport import QPrinter, QPrintDialog
 from PyQt6.QtGui import QPainter, QFont, QColor, QPen, QPageSize, QPageLayout
+# CORECȚIE IMPORT: QMarginsF este în QtCore în versiunile moderne
 from PyQt6.QtCore import QRect, Qt, QMarginsF
 from PyQt6.QtWidgets import QFileDialog, QMessageBox, QWidget
 import csv
@@ -32,7 +33,7 @@ class ExportManager:
             printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
             printer.setOutputFileName(file_path)
             
-            # CORECȚIE QT6: Folosim QPageLayout și QPageSize
+            # CORECȚIE QT6: Folosim QPageLayout și QPageSize cu margini QMarginsF
             page_size = QPageSize(QPageSize.PageSizeId.A4)
             page_layout = QPageLayout(page_size, QPageLayout.Orientation.Portrait, QMarginsF(15, 15, 15, 15))
             printer.setPageLayout(page_layout)
@@ -55,6 +56,10 @@ class ExportManager:
             return False
 
     def _draw_pdf_content(self, painter, printer, schedule_data, weather_data, statistics):
+        
+        # Extragem unitatea de măsură (ex: °C sau °F)
+        unit_symbol = statistics.get('unit', '°C') if statistics else '°C'
+        
         # Calculăm dimensiunile paginii în puncte
         page_rect = printer.pageRect(QPrinter.Unit.Point)
         width = int(page_rect.width())
@@ -83,8 +88,10 @@ class ExportManager:
             y += 25
             painter.setFont(QFont("Arial", 11))
             temp_medie = statistics.get('avg_temperature', 0)
-            painter.drawText(70, y, f"• Temperatură medie: {temp_medie:.1f}°")
+            
+            painter.drawText(70, y, f"• Temperatură medie: {temp_medie:.1f}{unit_symbol}")
             y += 20
+            
             precip = statistics.get('total_precipitation', 0)
             painter.drawText(70, y, f"• Total precipitații estimate: {precip:.1f} mm")
             y += 40
@@ -93,11 +100,21 @@ class ExportManager:
         painter.setPen(Qt.GlobalColor.black)
         painter.setFont(QFont("Arial", 10, QFont.Weight.Bold))
         
+        # Definim pozițiile coloanelor (pentru o aliniere ușoară)
+        COL_POS = {
+            "ZI": 50,
+            "INTERVAL": 150,
+            "ACTIVITATE": 280,
+            "TEMP": 430,
+            "CONDITII": 520 # Ajustat pentru Condiții mai lungi
+        }
+        
         # Header tabel
-        painter.drawText(50, y, "Zi")
-        painter.drawText(150, y, "Interval")
-        painter.drawText(280, y, "Activitate / Materie")
-        painter.drawText(500, y, "Temp.")
+        painter.drawText(COL_POS["ZI"], y, "Zi")
+        painter.drawText(COL_POS["INTERVAL"], y, "Interval")
+        painter.drawText(COL_POS["ACTIVITATE"], y, "Activitate / Materie")
+        painter.drawText(COL_POS["TEMP"], y, f"Temp. ({unit_symbol})")
+        painter.drawText(COL_POS["CONDITII"], y, "Condiții")
         
         y += 10
         painter.setPen(QPen(QColor(200, 200, 200), 1))
@@ -112,7 +129,8 @@ class ExportManager:
             if y > height - 60:
                 printer.newPage()
                 y = 50
-                # Redesenăm headerul sumar pe noua pagină
+                
+                # Redesenăm headerul sumar
                 painter.setFont(QFont("Arial", 8, QFont.Weight.Bold))
                 painter.drawText(50, y, "Continuare raport...")
                 y += 30
@@ -120,25 +138,34 @@ class ExportManager:
 
             zi = str(entry.get('day', '-'))
             ora = str(entry.get('time', '-'))
-            materie = str(entry.get('subject', '-'))[:35] # Trunchiem dacă e prea lung
-            
-            weather = entry.get('weather')
-            temp_text = "-"
-            if weather:
-                t = weather.get('temperature')
-                temp_text = f"{t:.1f}°" if t is not None else "-"
+            materie = str(entry.get('subject', '-'))[:25]
 
-            painter.drawText(50, y, zi)
-            painter.drawText(150, y, ora)
-            painter.drawText(280, y, materie)
-            painter.drawText(500, y, temp_text)
+            # --- CORECȚIE ROBUSTETE DATĂ ---
+            weather = entry.get('weather')
+            
+            if weather:
+                temp_value = weather.get('temperature')
+                cond_text = weather.get('weather_description', '-')
+            else:
+                # Setăm valori sigure dacă lipsește informația meteo
+                temp_value = None
+                cond_text = '-'
+            
+            # Formatarea temperaturii (folosind valoarea numerică + simbolul corect)
+            temp_text = f"{temp_value:.1f}{unit_symbol}" if temp_value is not None else "-" 
+
+            # Desenarea rândului
+            painter.drawText(COL_POS["ZI"], y, zi)
+            painter.drawText(COL_POS["INTERVAL"], y, ora)
+            painter.drawText(COL_POS["ACTIVITATE"], y, materie)
+            painter.drawText(COL_POS["TEMP"], y, temp_text)
+            painter.drawText(COL_POS["CONDITII"], y, cond_text)
             
             y += 25
 
     def export_to_csv(self, schedule_data: List[Dict]) -> bool:
         file_path, _ = QFileDialog.getSaveFileName(self.parent, "Salvează raportul CSV", "Raport_Weather.csv", "CSV (*.csv)")
-        if not file_path:
-            return False
+        if not file_path: return False
         try:
             with open(file_path, 'w', newline='', encoding='utf-8-sig') as f:
                 writer = csv.DictWriter(f, fieldnames=['Zi', 'Interval', 'Materie', 'Temperatura', 'Conditii'])
@@ -154,6 +181,5 @@ class ExportManager:
                     })
             return True
         except Exception as e:
-            if self.parent:
-                QMessageBox.critical(self.parent, "Eroare CSV", str(e))
+            if self.parent: QMessageBox.critical(self.parent, "Eroare CSV", str(e))
             return False

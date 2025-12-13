@@ -29,7 +29,7 @@ class MainWindow(QMainWindow):
         # Componente
         self.schedule_manager = ScheduleManager()
         self.weather_service = WeatherService()
-        self.data_processor = DataProcessor()
+        self.data_processor = DataProcessor() 
         self.notification_manager = NotificationManager(self)
         self.export_manager = ExportManager(self)
         
@@ -42,6 +42,7 @@ class MainWindow(QMainWindow):
         
         self.load_initial_settings()
         
+        # Încărcăm cache-ul
         cached = self.weather_service.load_weather_from_file()
         if cached:
             self.weather_data = cached
@@ -157,7 +158,7 @@ class MainWindow(QMainWindow):
             else:
                  for col in range(3, 7): self.table.setItem(row, col, QTableWidgetItem("-"))
         
-        # 3. Actualizează graficele (trimite lista de intrări direct, NU prin self.parent())
+        # 3. Actualizează graficele
         self.weather_chart.update_charts(self.weather_data, self.enriched_entries)
 
     def apply_theme(self):
