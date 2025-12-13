@@ -1,8 +1,3 @@
-"""
-Procesează datele de la WeatherService și le combină cu orarul.
-Responsabil: Danalache Sebastian
-"""
-
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 import json
@@ -13,7 +8,6 @@ class DataProcessor:
             "Luni": 0, "Marți": 1, "Miercuri": 2, "Joi": 3, "Vineri": 4, 
             "Sâmbătă": 5, "Duminică": 6
         }
-        # Valoare implicită pentru formatare
         self.temp_unit_symbol = "°C" 
 
     def set_temperature_unit(self, unit: str):
@@ -96,7 +90,6 @@ class DataProcessor:
         conditions = weather_data.get("weather_description")
         wind_speed = weather_data.get("wind_speed")
         
-        # UTILIZARE SIMBOL CORECT (°C sau °F)
         temperature = f"{temp:.1f}{self.temp_unit_symbol}" if temp is not None else "-"
         precipitation = f"{precip_prob:.0f}%" if precip_prob is not None else "-"
         conditions_text = conditions if conditions else "-"
@@ -124,7 +117,6 @@ class DataProcessor:
                 "max_temperature": None,
                 "rainy_periods": 0, 
                 "total_precipitation": 0.0,
-                # Adăugat pentru a returna simbolul unității
                 "unit": self.temp_unit_symbol 
             }
         
@@ -134,7 +126,6 @@ class DataProcessor:
             "max_temperature": max(temperatures),
             "rainy_periods": len([e for e in enriched_entries if e.get('weather') and e['weather'].get('precipitation_probability', 0) > 30]),
             "total_precipitation": sum([e.get('weather', {}).get('precipitation', 0) for e in enriched_entries if e.get('weather')]),
-            # Adăugat pentru a returna simbolul unității
             "unit": self.temp_unit_symbol
         }
 

@@ -1,8 +1,3 @@
-"""
-Widget pentru grafice interactive de temperatură și precipitații
-Responsabil: Moscalu Sebastian
-"""
-
 import pyqtgraph as pg
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSizePolicy
 from PyQt6.QtCore import Qt
@@ -16,7 +11,7 @@ class WeatherChartWidget(QWidget):
     
     def __init__(self, data_processor, parent=None):
         super().__init__(parent)
-        self.data_processor = data_processor # Referința sigură
+        self.data_processor = data_processor
         
         self.temp_unit = "°C" 
         
@@ -36,7 +31,6 @@ class WeatherChartWidget(QWidget):
         
         charts_layout = QHBoxLayout()
         
-        # ==== GRAFICUL TEMPERATURII ====
         temp_container = QWidget()
         temp_layout = QVBoxLayout()
         temp_container.setLayout(temp_layout)
@@ -59,7 +53,6 @@ class WeatherChartWidget(QWidget):
         temp_layout.addWidget(self.temp_plot)
         charts_layout.addWidget(temp_container)
         
-        # ==== GRAFICUL PRECIPITAȚIILOR ====
         precip_container = QWidget()
         precip_layout = QVBoxLayout()
         precip_container.setLayout(precip_layout)
@@ -84,7 +77,6 @@ class WeatherChartWidget(QWidget):
         
         layout.addLayout(charts_layout)
         
-        # Label pentru statistici
         self.stats_label = QLabel()
         self.stats_label.setStyleSheet("padding: 10px; background-color: #3d3d3d; border-radius: 5px; color: #ffffff;")
         self.stats_label.setWordWrap(True)
@@ -122,7 +114,6 @@ class WeatherChartWidget(QWidget):
         self._plot_temperature(timestamps, temperatures)
         self._plot_precipitation(timestamps, precip_probabilities, precip_amounts)
         
-        # Transmitem weather_data pentru a putea calcula referința orară corect
         if schedule_entries and weather_data:
             self._mark_schedule_intervals(schedule_entries, weather_data)
             
@@ -162,14 +153,12 @@ class WeatherChartWidget(QWidget):
                 scatter = pg.ScatterPlotItem(rain_times, rain_amounts, symbol='t', size=15, brush=pg.mkBrush(50, 50, 220, 200), pen=pg.mkPen('b', width=2), name='Precipitații efective')
                 self.precip_plot.addItem(scatter)
                 
-    # === MODIFICARE ÎN SEMNĂTURĂ: Primim weather_data direct ===
     def _mark_schedule_intervals(self, schedule_entries: List[Dict], weather_data: Dict):
         
         if not weather_data or not weather_data.get("hourly"):
             return
             
         try:
-            # Calculăm timpul de referință din datele primite de la API
             reference_time = datetime.fromisoformat(weather_data["hourly"][0]["datetime"]).astimezone()
         except Exception:
             return
@@ -182,7 +171,6 @@ class WeatherChartWidget(QWidget):
                 start_time = datetime.strptime(f"{entry_date} {start_str.strip()}", "%Y-%m-%d %H:%M")
                 end_time = datetime.strptime(f"{entry_date} {end_str.strip()}", "%Y-%m-%d %H:%M")
                 
-                # Asigurăm același fus orar
                 start_hours = (start_time.replace(tzinfo=reference_time.tzinfo) - reference_time).total_seconds() / 3600
                 end_hours = (end_time.replace(tzinfo=reference_time.tzinfo) - reference_time).total_seconds() / 3600
                 
@@ -192,14 +180,12 @@ class WeatherChartWidget(QWidget):
                     plot.addItem(region)
             except Exception: continue
                 
-    # === MODIFICARE ÎN SEMNĂTURĂ: Ștergem referințele la main_window ===
     def _update_statistics(self, temperatures: List[float], probabilities: List[float], amounts: List[float], data_processor, schedule_entries: List[Dict]):
         """Actualizează etichetele de statistici folosind unitatea corectă"""
         if not temperatures:
             self.stats_label.setText("Nu există suficiente date pentru statistici.")
             return
             
-        # Folosim schedule_entries primit direct
         stats = data_processor.calculate_statistics(schedule_entries)
         
         unit = stats['unit']

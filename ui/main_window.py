@@ -1,8 +1,3 @@
-"""
-UI & Interfață principală WeatherScheduler
-Responsabil: Danalache Emanuel
-"""
-
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                              QPushButton, QTableWidget, QTableWidgetItem, 
                              QLabel, QFileDialog, QMessageBox, QHeaderView, QInputDialog)
@@ -26,7 +21,6 @@ class MainWindow(QMainWindow):
         self.weather_data = None
         self.enriched_entries = []
         
-        # Componente
         self.schedule_manager = ScheduleManager()
         self.weather_service = WeatherService()
         self.data_processor = DataProcessor() 
@@ -36,13 +30,11 @@ class MainWindow(QMainWindow):
         self.init_ui()
         self.apply_theme()
         
-        # CONECTARE SEMNALE
         self.weather_service.weather_data_ready.connect(self.on_weather_data_received)
         self.weather_service.weather_error.connect(self.on_weather_error)
         
         self.load_initial_settings()
         
-        # Încărcăm cache-ul
         cached = self.weather_service.load_weather_from_file()
         if cached:
             self.weather_data = cached
@@ -69,7 +61,6 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central)
         layout = QVBoxLayout(central)
         
-        # Controale
         ctrl_layout = QHBoxLayout()
         self.load_btn = QPushButton("📂 Încarcă Orar")
         self.load_btn.clicked.connect(self.load_schedule)
@@ -91,7 +82,6 @@ class MainWindow(QMainWindow):
         self.create_table()
         layout.addWidget(self.table, 3)
         
-        # TRIMITERE SIGURĂ A data_processor
         self.weather_chart = WeatherChartWidget(self.data_processor, self)
         
         layout.addWidget(self.weather_chart, 2)
