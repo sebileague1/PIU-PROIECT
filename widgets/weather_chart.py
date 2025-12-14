@@ -1,9 +1,3 @@
-"""
-Widget pentru grafice interactive de temperatură și precipitații
-Responsabil: Moscalu Sebastian
-FIX COMPLET: Tooltip-uri stabile pe AMBELE grafice
-"""
-
 import pyqtgraph as pg
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSizePolicy
 from PyQt6.QtGui import QPainter, QFont, QCursor
@@ -60,7 +54,6 @@ class WeatherChartWidget(QWidget):
         self.temp_unit = "°C" 
         self.full_weather_data = None 
         
-        # Date pentru detectarea hover-ului
         self.temp_data_points = []
         self.precip_data_points = []
         
@@ -69,11 +62,9 @@ class WeatherChartWidget(QWidget):
         
         self.init_ui()
         
-        # Tooltip pe window-ul principal
         main_window = self.window()
         self.hover_label = HoverLabel(main_window)
         
-        # Timer pentru verificarea constantă
         self.mouse_timer = QTimer()
         self.mouse_timer.setInterval(30)
         self.mouse_timer.timeout.connect(self._check_mouse_position)
@@ -90,7 +81,6 @@ class WeatherChartWidget(QWidget):
         
         charts_layout = QHBoxLayout()
         
-        # ==== GRAFICUL TEMPERATURII ====
         temp_container = QWidget()
         temp_layout = QVBoxLayout()
         temp_container.setLayout(temp_layout)
@@ -114,7 +104,6 @@ class WeatherChartWidget(QWidget):
         temp_layout.addWidget(self.temp_plot)
         charts_layout.addWidget(temp_container)
         
-        # ==== GRAFICUL PRECIPITAȚIILOR ====
         precip_container = QWidget()
         precip_layout = QVBoxLayout()
         precip_container.setLayout(precip_layout)
@@ -140,7 +129,6 @@ class WeatherChartWidget(QWidget):
         
         layout.addLayout(charts_layout)
         
-        # Label pentru statistici
         self.stats_label = QLabel()
         self.stats_label.setStyleSheet("padding: 10px; background-color: #3d3d3d; border-radius: 5px; color: #ffffff;")
         self.stats_label.setWordWrap(True)
@@ -194,7 +182,6 @@ class WeatherChartWidget(QWidget):
             
         self.temp_plot.setLabel('left', f'Temperatură ({self.temp_unit})', units='')
         
-        # Linia de temperatură
         pen_temp = pg.mkPen(color=(220, 50, 50), width=2)
         line = pg.PlotDataItem(
             timestamps, 
@@ -204,7 +191,6 @@ class WeatherChartWidget(QWidget):
         )
         self.temp_plot.addItem(line)
         
-        # Punctele vizibile
         scatter = pg.ScatterPlotItem(
             timestamps,
             temperatures,
@@ -214,11 +200,9 @@ class WeatherChartWidget(QWidget):
         )
         self.temp_plot.addItem(scatter)
         
-        # Salvează punctele
         for i, (x, y) in enumerate(zip(timestamps, temperatures)):
             self.temp_data_points.append((x, y, i))
         
-        # Linie medie
         if len(temperatures) > 1:
             avg_temp = sum(temperatures) / len(temperatures)
             self.temp_plot.addLine(y=avg_temp, pen=pg.mkPen('r', style=Qt.PenStyle.DashLine, width=1))
@@ -231,7 +215,6 @@ class WeatherChartWidget(QWidget):
         if not timestamps: return
         
         if probabilities:
-            # Linia de probabilitate
             line = pg.PlotDataItem(
                 timestamps, 
                 probabilities, 
@@ -242,7 +225,6 @@ class WeatherChartWidget(QWidget):
             )
             self.precip_plot.addItem(line)
             
-            # Puncte vizibile
             scatter = pg.ScatterPlotItem(
                 timestamps,
                 probabilities,
@@ -253,11 +235,9 @@ class WeatherChartWidget(QWidget):
             )
             self.precip_plot.addItem(scatter)
             
-            # Salvează punctele
             for i, (x, y) in enumerate(zip(timestamps, probabilities)):
                 self.precip_data_points.append((x, y, i))
             
-        # Precipitații efective
         if amounts:
             rain_times = [timestamps[i] for i, amount in enumerate(amounts) if amount > 0 and i < len(probabilities)]
             rain_amounts = [probabilities[i] for i, amount in enumerate(amounts) if amount > 0 and i < len(probabilities)]
@@ -278,37 +258,31 @@ class WeatherChartWidget(QWidget):
         global_pos = QCursor.pos()
         found_point = False
         
-        # Verifică TEMPERATURA
         if self.temp_plot.underMouse() and self.temp_data_points:
             try:
-                # Obținem poziția mouse-ului în widget
                 local_pos = self.temp_plot.mapFromGlobal(global_pos)
                 
-                # Convertim direct în coordonate de date (view coordinates)
                 view_box = self.temp_plot.plotItem.vb
                 mouse_point = view_box.mapSceneToView(
                     view_box.mapFromView(view_box.mapToView(local_pos))
                 )
                 
-                # Găsește cel mai apropiat punct
                 closest = self._find_closest_point(
                     mouse_point.x(), 
                     mouse_point.y(), 
                     self.temp_data_points,
-                    threshold=3.5  # Threshold mărit pentru detectare mai bună
+                    threshold=3.5 
                 )
                 
                 if closest is not None:
                     self._show_tooltip_for_index(closest, "temp", global_pos)
                     found_point = True
             except Exception as e:
-                # Backup method - doar distanță pe X
                 try:
                     view_range = self.temp_plot.plotItem.vb.viewRange()
                     x_range = view_range[0]
                     plot_width = self.temp_plot.width()
                     
-                    # Calculează coordonata X aproximativă
                     x_ratio = local_pos.x() / plot_width
                     approx_x = x_range[0] + (x_range[1] - x_range[0]) * x_ratio
                     
@@ -324,37 +298,31 @@ class WeatherChartWidget(QWidget):
                 except:
                     pass
         
-        # Verifică PRECIPITAȚIILE
         elif self.precip_plot.underMouse() and self.precip_data_points:
             try:
-                # Obținem poziția mouse-ului în widget
                 local_pos = self.precip_plot.mapFromGlobal(global_pos)
                 
-                # Convertim direct în coordonate de date
                 view_box = self.precip_plot.plotItem.vb
                 mouse_point = view_box.mapSceneToView(
                     view_box.mapFromView(view_box.mapToView(local_pos))
                 )
                 
-                # Găsește cel mai apropiat punct
                 closest = self._find_closest_point(
                     mouse_point.x(), 
                     mouse_point.y(), 
                     self.precip_data_points,
-                    threshold=4.5  # Threshold mărit pentru precipitații
+                    threshold=4.5
                 )
                 
                 if closest is not None:
                     self._show_tooltip_for_index(closest, "precip", global_pos)
                     found_point = True
             except Exception as e:
-                # Backup method - doar distanță pe X
                 try:
                     view_range = self.precip_plot.plotItem.vb.viewRange()
                     x_range = view_range[0]
                     plot_width = self.precip_plot.width()
                     
-                    # Calculează coordonata X aproximativă
                     x_ratio = local_pos.x() / plot_width
                     approx_x = x_range[0] + (x_range[1] - x_range[0]) * x_ratio
                     
@@ -370,7 +338,6 @@ class WeatherChartWidget(QWidget):
                 except:
                     pass
         
-        # Ascunde tooltip-ul dacă nu suntem aproape de nici un punct
         if not found_point:
             self.hover_label.hide()
     
@@ -383,7 +350,6 @@ class WeatherChartWidget(QWidget):
         closest_index = None
         
         for x, y, index in data_points:
-            # Calculează distanța doar pe axa X (mai precis pentru grafice)
             distance = abs(x - mouse_x)
             
             if distance < min_distance and distance < threshold:
@@ -420,7 +386,6 @@ class WeatherChartWidget(QWidget):
         
         data = hourly_data[index]
         
-        # Formatare dată/oră
         dt_str = data.get("datetime", "")
         try:
             dt = datetime.fromisoformat(dt_str)

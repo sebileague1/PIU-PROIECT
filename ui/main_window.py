@@ -129,10 +129,8 @@ class MainWindow(QMainWindow):
         """Metoda unificată pentru actualizarea UI-ului"""
         if not self.schedule_data or not self.weather_data: return
         
-        # 1. Procesează datele
         self.enriched_entries = self.data_processor.merge_schedule_with_weather(self.schedule_data["schedule"], self.weather_data)
         
-        # 2. Actualizează tabelul
         self.table.setRowCount(len(self.enriched_entries))
         for row, entry in enumerate(self.enriched_entries):
             self.table.setItem(row, 0, QTableWidgetItem(entry.get('day', '')))
@@ -148,7 +146,6 @@ class MainWindow(QMainWindow):
             else:
                  for col in range(3, 7): self.table.setItem(row, col, QTableWidgetItem("-"))
         
-        # 3. Actualizează graficele
         self.weather_chart.update_charts(self.weather_data, self.enriched_entries)
 
     def apply_theme(self):
