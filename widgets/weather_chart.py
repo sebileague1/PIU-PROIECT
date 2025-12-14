@@ -5,7 +5,7 @@ Responsabil: Moscalu Sebastian
 
 import pyqtgraph as pg
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSizePolicy
-from PyQt6.QtGui import QPainter, QFont
+from PyQt6.QtGui import QPainter, QFont, QCursor # Import QCursor pentru a lua pozitia mouse-ului
 from PyQt6.QtCore import Qt, QPoint
 from datetime import datetime
 from typing import List, Dict, Optional
@@ -15,7 +15,7 @@ class HoverLabel(QLabel):
     def __init__(self, parent=None):
         super().__init__(parent)
         
-        # Eliminăm linia care dă AttributeError (WA_TransparentForInput)
+        # Eliminăm WA_TransparentForInput care dă AttributeError, ne bazăm pe Qt.WindowType.ToolTip
         self.setWindowFlags(Qt.WindowType.ToolTip | Qt.WindowType.FramelessWindowHint)
         self.setStyleSheet("background-color: #1e1e1e; color: white; padding: 5px; border: 1px solid #555;")
         self.hide()
@@ -169,7 +169,7 @@ class WeatherChartWidget(QWidget):
         )
         self.temp_plot.addItem(curve)
         
-        # Conectare hover folosind numele corect al semnalului
+        # Conectare hover
         curve.sigPointsHovered.connect(lambda curve, points: self._on_plot_hovered(curve, points, "temp"))
         
         if len(temperatures) > 1:
@@ -194,7 +194,7 @@ class WeatherChartWidget(QWidget):
             )
             self.precip_plot.addItem(curve)
             
-            # Conectare hover folosind numele corect al semnalului
+            # Conectare hover
             curve.sigPointsHovered.connect(lambda curve, points: self._on_plot_hovered(curve, points, "precip"))
             
         if amounts:
@@ -207,20 +207,23 @@ class WeatherChartWidget(QWidget):
     def _on_plot_hovered(self, curve, points, plot_type):
         """
         Afișează detaliile (tooltip) când mouse-ul trece peste un punct de date.
+        
+        Folosim pozitia cursorului mouse-ului pentru a pozitiona tooltip-ul.
         """
         if points:
             point = points[0]
             
-            # Preluăm indexul punctului din structura de date a curvei ( PlotDataItem )
-            # .index() returnează indexul punctului în array-ul de date.
+            # Preluăm indexul punctului detectat de PyQtGraph
             index = point.index() 
             
             if self.full_weather_data and self.full_weather_data.get("hourly") and index < len(self.full_weather_data["hourly"]):
                 
                 data = self.full_weather_data["hourly"][index]
                 
-                # Convertim poziția pe grafic la poziția globală a ecranului
-                pos = self.mapToGlobal(point.pos().toPoint())
+                # === CORECȚIE CRITICĂ AICI ===
+                # Obținem poziția globală a cursorului (cea mai stabilă metodă)
+                global_pos = QCursor.pos() 
+                # ==============================
                 
                 dt_str = data.get("datetime", "")
                 dt = datetime.fromisoformat(dt_str)
@@ -230,6 +233,7 @@ class WeatherChartWidget(QWidget):
                     temp = data.get("temperature", "-")
                     cond = data.get("weather_description", "-")
                     
+                    # Afișarea temperaturii cu unitatea corectă
                     text = (f"<b>{ora_formatata}</b><br>"
                             f"Temp: {temp:.1f}{self.temp_unit}<br>"
                             f"Condiții: {cond}")
@@ -245,7 +249,7 @@ class WeatherChartWidget(QWidget):
                             f"Vânt: {wind:.1f} km/h")
                             
                 # Afișăm label-ul lângă cursor
-                self.hover_label.show_text(pos + QPoint(10, 10), text)
+                self.hover_label.show_text(global_pos + QPoint(10, -5), text)
                 return
                 
         self.hover_label.hide()
