@@ -1,3 +1,8 @@
+"""
+Funcționalitate de export în format PDF și CSV
+Responsabil: Moscalu Sebastian
+"""
+
 from PyQt6.QtPrintSupport import QPrinter, QPrintDialog
 from PyQt6.QtGui import QPainter, QFont, QColor, QPen, QPageSize, QPageLayout
 from PyQt6.QtCore import QRect, Qt, QMarginsF
@@ -22,10 +27,12 @@ class ExportManager:
             return False
             
         try:
+            # Configurare Printer pentru PyQt6
             printer = QPrinter(QPrinter.PrinterMode.HighResolution)
             printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
             printer.setOutputFileName(file_path)
             
+            # CORECȚIE QT6: Folosim QPageLayout și QPageSize cu margini QMarginsF
             page_size = QPageSize(QPageSize.PageSizeId.A4)
             page_layout = QPageLayout(page_size, QPageLayout.Orientation.Portrait, QMarginsF(15, 15, 15, 15))
             printer.setPageLayout(page_layout)
@@ -44,30 +51,35 @@ class ExportManager:
             
         except Exception as e:
             if self.parent:
-                QMessageBox.critical(self.parent, "Eroare export PDF", f"Eroare critică: {str(e)}")
+                QMessageBox.critical(self.parent, "Eroare export PDF", f"Eroare critică la desenare: {str(e)}")
             return False
 
     def _draw_pdf_content(self, painter, printer, schedule_data, weather_data, statistics):
         
+        # Extragem unitatea de măsură (ex: °C sau °F)
         unit_symbol = statistics.get('unit', '°C') if statistics else '°C'
         
+        # Calculăm dimensiunile paginii în puncte
         page_rect = printer.pageRect(QPrinter.Unit.Point)
         width = int(page_rect.width())
         height = int(page_rect.height())
         
         y = 50
         
+        # --- Titlu ---
         painter.setPen(QColor(0, 51, 102))
         painter.setFont(QFont("Arial", 22, QFont.Weight.Bold))
         painter.drawText(50, y, "Raport WeatherScheduler")
         y += 40
         
+        # --- Subtitlu ---
         painter.setPen(QColor(100, 100, 100))
         painter.setFont(QFont("Arial", 12))
         data_gen = datetime.now().strftime("%d.%m.%Y %H:%M")
         painter.drawText(50, y, f"Generat la: {data_gen}")
         y += 40
         
+        # --- Statistici ---
         if statistics and statistics.get('avg_temperature') is not None:
             painter.setPen(Qt.GlobalColor.black)
             painter.setFont(QFont("Arial", 12, QFont.Weight.Bold))
@@ -83,22 +95,27 @@ class ExportManager:
             painter.drawText(70, y, f"• Total precipitații estimate: {precip:.1f} mm")
             y += 40
 
+        # --- Tabel Date ---
         painter.setPen(Qt.GlobalColor.black)
         painter.setFont(QFont("Arial", 10, QFont.Weight.Bold))
         
+        # Definim pozițiile coloanelor 
         COL_POS = {
             "ZI": 50,
-            "INTERVAL": 150,
-            "ACTIVITATE": 280,
-            "TEMP": 430,
-            "CONDITII": 520
+            "INTERVAL": 120,
+            "ACTIVITATE": 210, # Spațiu mai mare pentru nume materie
+            "TEMP": 420,
+            "CONDITII": 490,
+            "PRECIP": 600
         }
         
+        # Header tabel
         painter.drawText(COL_POS["ZI"], y, "Zi")
         painter.drawText(COL_POS["INTERVAL"], y, "Interval")
         painter.drawText(COL_POS["ACTIVITATE"], y, "Activitate / Materie")
         painter.drawText(COL_POS["TEMP"], y, f"Temp. ({unit_symbol})")
         painter.drawText(COL_POS["CONDITII"], y, "Condiții")
+        painter.drawText(COL_POS["PRECIP"], y, "Ploaie (%)")
         
         y += 10
         painter.setPen(QPen(QColor(200, 200, 200), 1))
@@ -109,35 +126,44 @@ class ExportManager:
         painter.setFont(QFont("Arial", 10))
         
         for entry in schedule_data:
+            # Verificăm dacă depășim pagina
             if y > height - 60:
                 printer.newPage()
                 y = 50
                 
+                # Redesenăm headerul sumar
                 painter.setFont(QFont("Arial", 8, QFont.Weight.Bold))
                 painter.drawText(50, y, "Continuare raport...")
                 y += 30
                 painter.setFont(QFont("Arial", 10))
 
+            # Extracție date de bază
             zi = str(entry.get('day', '-'))
             ora = str(entry.get('time', '-'))
             materie = str(entry.get('subject', '-'))[:25]
-
+            
+            # Inițializare și Extracție date meteo
             temp_value = None
             cond_text = '-'
+            precip_prob = '-'
             
             weather = entry.get('weather')
             
             if weather:
                 temp_value = weather.get('temperature')
                 cond_text = weather.get('weather_description', '-')
+                precip_prob = f"{weather.get('precipitation_probability', 0):.0f}%"
             
+            # Formatarea temperaturii (folosind valoarea numerică + simbolul corect)
             temp_text = f"{temp_value:.1f}{unit_symbol}" if temp_value is not None else "-" 
 
+            # Desenarea rândului
             painter.drawText(COL_POS["ZI"], y, zi)
             painter.drawText(COL_POS["INTERVAL"], y, ora)
             painter.drawText(COL_POS["ACTIVITATE"], y, materie)
             painter.drawText(COL_POS["TEMP"], y, temp_text)
             painter.drawText(COL_POS["CONDITII"], y, cond_text)
+            painter.drawText(COL_POS["PRECIP"], y, precip_prob)
             
             y += 25
 

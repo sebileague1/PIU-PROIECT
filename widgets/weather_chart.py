@@ -1,8 +1,30 @@
+"""
+Widget pentru grafice interactive de temperatură și precipitații
+Responsabil: Moscalu Sebastian
+"""
+
 import pyqtgraph as pg
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSizePolicy
-from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QPainter, QFont
+from PyQt6.QtCore import Qt, QPoint
 from datetime import datetime
 from typing import List, Dict, Optional
+
+class HoverLabel(QLabel):
+    """Etichetă simplă de tip tooltip care urmărește cursorul."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+        # Eliminăm linia care dă AttributeError (WA_TransparentForInput)
+        self.setWindowFlags(Qt.WindowType.ToolTip | Qt.WindowType.FramelessWindowHint)
+        self.setStyleSheet("background-color: #1e1e1e; color: white; padding: 5px; border: 1px solid #555;")
+        self.hide()
+
+    def show_text(self, pos: QPoint, text: str):
+        """Afișează textul la o poziție dată."""
+        self.setText(text)
+        self.move(pos)
+        self.show()
 
 class WeatherChartWidget(QWidget):
     """
@@ -12,13 +34,16 @@ class WeatherChartWidget(QWidget):
     def __init__(self, data_processor, parent=None):
         super().__init__(parent)
         self.data_processor = data_processor
-        
         self.temp_unit = "°C" 
+        self.full_weather_data = None 
         
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self.setMaximumHeight(450)
         
         self.init_ui()
+        
+        # Initializăm HoverLabel-ul pe Părintele principal (MainWindow)
+        self.hover_label = HoverLabel(self.parent())
         
     def init_ui(self):
         """Inițializează interfața widget-ului"""
@@ -31,6 +56,7 @@ class WeatherChartWidget(QWidget):
         
         charts_layout = QHBoxLayout()
         
+        # ==== GRAFICUL TEMPERATURII ====
         temp_container = QWidget()
         temp_layout = QVBoxLayout()
         temp_container.setLayout(temp_layout)
@@ -53,6 +79,7 @@ class WeatherChartWidget(QWidget):
         temp_layout.addWidget(self.temp_plot)
         charts_layout.addWidget(temp_container)
         
+        # ==== GRAFICUL PRECIPITAȚIILOR ====
         precip_container = QWidget()
         precip_layout = QVBoxLayout()
         precip_container.setLayout(precip_layout)
@@ -77,6 +104,7 @@ class WeatherChartWidget(QWidget):
         
         layout.addLayout(charts_layout)
         
+        # Label pentru statistici
         self.stats_label = QLabel()
         self.stats_label.setStyleSheet("padding: 10px; background-color: #3d3d3d; border-radius: 5px; color: #ffffff;")
         self.stats_label.setWordWrap(True)
@@ -87,6 +115,8 @@ class WeatherChartWidget(QWidget):
             self.clear_charts()
             self.stats_label.setText("Nu există date meteo disponibile pentru grafice.")
             return
+        
+        self.full_weather_data = weather_data 
             
         hourly_data = weather_data["hourly"]
         if not hourly_data:
@@ -120,41 +150,107 @@ class WeatherChartWidget(QWidget):
         self._update_statistics(temperatures, precip_probabilities, precip_amounts, self.data_processor, schedule_entries)
         
     def _plot_temperature(self, timestamps: List[float], temperatures: List[float]):
+        """Desenează graficul temperaturii și conectează funcția de hover."""
         self.temp_plot.clear()
+        
         if not timestamps or not temperatures: return
             
         self.temp_plot.setLabel('left', f'Temperatură ({self.temp_unit})', units='')
         
         pen_temp = pg.mkPen(color=(220, 50, 50), width=2)
-        self.temp_plot.plot(
+        curve = pg.PlotDataItem(
             timestamps, 
             temperatures, 
             pen=pen_temp, 
             name=f'Temperatură {self.temp_unit}',
             symbol='o',
-            symbolSize=5,
+            symbolSize=7,
             symbolBrush=(220, 50, 50)
         )
+        self.temp_plot.addItem(curve)
+        
+        # Conectare hover folosind numele corect al semnalului
+        curve.sigPointsHovered.connect(lambda curve, points: self._on_plot_hovered(curve, points, "temp"))
         
         if len(temperatures) > 1:
             avg_temp = sum(temperatures) / len(temperatures)
             self.temp_plot.addLine(y=avg_temp, pen=pg.mkPen('r', style=Qt.PenStyle.DashLine, width=1))
             
     def _plot_precipitation(self, timestamps: List[float], probabilities: List[float], amounts: List[float]):
+        """Desenează graficul precipitațiilor și conectează funcția de hover."""
         self.precip_plot.clear()
         if not timestamps: return
+        
         if probabilities:
-            pen_prob = pg.mkPen(color=(50, 120, 220), width=2)
-            self.precip_plot.plot(timestamps, probabilities, pen=pen_prob, name='Probabilitate (%)', fillLevel=0, fillBrush=(50, 120, 220, 100))
+            curve = pg.PlotDataItem(
+                timestamps, 
+                probabilities, 
+                pen=pg.mkPen(color=(50, 120, 220), width=2), 
+                name='Probabilitate (%)', 
+                fillLevel=0, 
+                fillBrush=(50, 120, 220, 100),
+                symbol='d', 
+                symbolSize=7
+            )
+            self.precip_plot.addItem(curve)
+            
+            # Conectare hover folosind numele corect al semnalului
+            curve.sigPointsHovered.connect(lambda curve, points: self._on_plot_hovered(curve, points, "precip"))
+            
         if amounts:
             rain_times = [timestamps[i] for i, amount in enumerate(amounts) if amount > 0 and i < len(probabilities)]
             rain_amounts = [probabilities[i] for i, amount in enumerate(amounts) if amount > 0 and i < len(probabilities)]
             if rain_times:
                 scatter = pg.ScatterPlotItem(rain_times, rain_amounts, symbol='t', size=15, brush=pg.mkBrush(50, 50, 220, 200), pen=pg.mkPen('b', width=2), name='Precipitații efective')
                 self.precip_plot.addItem(scatter)
+    
+    def _on_plot_hovered(self, curve, points, plot_type):
+        """
+        Afișează detaliile (tooltip) când mouse-ul trece peste un punct de date.
+        """
+        if points:
+            point = points[0]
+            
+            # Preluăm indexul punctului din structura de date a curvei ( PlotDataItem )
+            # .index() returnează indexul punctului în array-ul de date.
+            index = point.index() 
+            
+            if self.full_weather_data and self.full_weather_data.get("hourly") and index < len(self.full_weather_data["hourly"]):
                 
-    def _mark_schedule_intervals(self, schedule_entries: List[Dict], weather_data: Dict):
+                data = self.full_weather_data["hourly"][index]
+                
+                # Convertim poziția pe grafic la poziția globală a ecranului
+                pos = self.mapToGlobal(point.pos().toPoint())
+                
+                dt_str = data.get("datetime", "")
+                dt = datetime.fromisoformat(dt_str)
+                ora_formatata = dt.strftime("%A, %H:00")
+                
+                if plot_type == "temp":
+                    temp = data.get("temperature", "-")
+                    cond = data.get("weather_description", "-")
+                    
+                    text = (f"<b>{ora_formatata}</b><br>"
+                            f"Temp: {temp:.1f}{self.temp_unit}<br>"
+                            f"Condiții: {cond}")
+                
+                elif plot_type == "precip":
+                    prob = data.get("precipitation_probability", 0)
+                    amt = data.get("precipitation", 0)
+                    wind = data.get("wind_speed", 0)
+                    
+                    text = (f"<b>{ora_formatata}</b><br>"
+                            f"Probab. Pl: {prob:.0f}%<br>"
+                            f"Cant. estimată: {amt:.1f} mm<br>"
+                            f"Vânt: {wind:.1f} km/h")
+                            
+                # Afișăm label-ul lângă cursor
+                self.hover_label.show_text(pos + QPoint(10, 10), text)
+                return
+                
+        self.hover_label.hide()
         
+    def _mark_schedule_intervals(self, schedule_entries: List[Dict], weather_data: Dict):
         if not weather_data or not weather_data.get("hourly"):
             return
             
@@ -181,7 +277,6 @@ class WeatherChartWidget(QWidget):
             except Exception: continue
                 
     def _update_statistics(self, temperatures: List[float], probabilities: List[float], amounts: List[float], data_processor, schedule_entries: List[Dict]):
-        """Actualizează etichetele de statistici folosind unitatea corectă"""
         if not temperatures:
             self.stats_label.setText("Nu există suficiente date pentru statistici.")
             return
@@ -208,6 +303,7 @@ class WeatherChartWidget(QWidget):
     def clear_charts(self):
         self.temp_plot.clear()
         self.precip_plot.clear()
+        self.hover_label.hide()
         self.stats_label.setText("Graficele vor fi actualizate după încărcarea datelor meteo.")
         
     def export_chart_images(self, temp_path: str, precip_path: str) -> bool:
