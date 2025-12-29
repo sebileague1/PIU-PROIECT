@@ -1,5 +1,5 @@
 {
-  "temperature_unit": "celsius",
+  "temperature_unit": "fahrenheit",
   "wind_unit": "km/h",
   "update_interval_minutes": 5,
   "auto_update_enabled": true,
@@ -8,7 +8,7 @@
   "rain_alert_enabled": true,
   "extreme_weather_alert": true,
   "rain_threshold": 40,
-  "location_name": "Cluj",
+  "location_name": "Bucuresti",
   "forecast_days": 6,
   "compact_mode": true
 }
